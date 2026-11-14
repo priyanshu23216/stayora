@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import db from "../config/db.js";
 import rateLimit from "express-rate-limit";
 import passport from "../config/passport.js";
-import {sendOtpEmail , resetPassEmail} from "../utils/mailer.js";
+import {sendOtpEmail , resetPassEmail , passChangeAlertEmail} from "../utils/mailer.js";
 import crypto from "crypto";
 import redis from "../config/redis.js";
 import {signupSchema , loginCheck ,resetPassword , emailValidator , otpValidator }from "../utils/validator.js";
@@ -303,12 +303,12 @@ router.post('/forgot-password/submit', forgotPassIPlimiter ,forgotPassEmailLimit
             return res.redirect('/authenticate/forgot-password');
         }
 // Generate a secure random token and hash it before storing in Redis for password reset
-        const rawToken = crypto.randomBytes(32).toString("hex"); // that ramdom 32 byte token is a raw binary buffer and we convert it to hex string format to send it to user email for password reset
-        const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const token = crypto.randomBytes(32).toString("hex"); // that ramdom 32 byte token is a raw binary buffer and we convert it to hex string format to send it to user email for password reset
+        const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
         const redisKey = `resetPass:${hashedToken}`;
         await redis.set(redisKey, email, "EX", 600);
         try {
-            const resetLink = `${process.env.APP_URL}/authenticate/reset-password/${rawToken}`; // create a reset link with the raw token to send it to user email for password reset
+            const resetLink = `${process.env.APP_URL}/authenticate/forgot-password/${token}`; // create a reset link with the raw token to send it to user email for password reset
             await resetPassEmail(email , resetLink);// send the raw token to user email for password reset
             req.flash("success" , "If email exists then OTP has been sent to your email for password reset.");
             return res.redirect('/authenticate/forgot-password');
@@ -319,6 +319,55 @@ router.post('/forgot-password/submit', forgotPassIPlimiter ,forgotPassEmailLimit
         return next(err);
     };
 });
+
+router.get('/forgot-password/:token' , async ( req , res , next)=>{
+    try{
+    const token = req.params.token;
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const email =   await redis.get(`resetPass:${hashedToken}`);
+
+    if( !email ){// if no email is found with that token than either link is expired or invalid
+       req.flash("error" , "Reset link is invalid or expired" );
+       return  res.redirect('/forgot-password');
+    }
+    return res.render('reset-password' , { title : "reset-password" , token } );
+    } catch( err ){
+        return next( err );
+    }
+});
+
+router.post('/reset-password/:token' , async ( req , res , next)=>{
+    const token = req.params.token;
+    const hashedToken = crypto.createHash("sha256").update( token ).digest("hex");
+    const email = await redis.get(`resetPass:${hashedToken}`);
+    
+    if( !email ){ // if email is not found by that token then either redis token key is expired or some tampering is done with token
+        req.flash("error" , "Some error occured please try again");
+        return res.redirect('/authenticate/forgot-password');
+    }
+    const result = resetPassword.safeParse(req.body);
+    try{
+        if( !result.success ){
+           return  res.render('reset-password' , { title : "reset-password" ,token , error : result.error.issues[0].message} );
+        }
+        const password = result.data.password;
+        const hashedPass = await bcrypt.hash( password , 12);
+        try {
+            await db.execute("UPDATE USERS SET PASSWORD = ? WHERE EMAIL = ?", [hashedPass, email] );        
+            await redis.del(`resetPass:${hashedToken}`);// after succesfully changing pass delete the hashedToken  from redis
+            await redis.del(`login:attempts:${email}`);// delete the login attempts count too 
+            req.flash( "success" , "Your Password is changed");
+            await passChangeAlertEmail( email );// send an alert email 
+            res.redirect('/authenticate/login');
+        }catch ( err ){
+            return next ( err );
+        }
+    } catch( err ){
+        return next( err );
+    }
+});
+
+
 
 router.get('/logout', (req, res, next) => {
     req.logout((err) => {

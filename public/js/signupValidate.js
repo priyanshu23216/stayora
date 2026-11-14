@@ -64,8 +64,8 @@ form.addEventListener( 'submit' , function(e) {
 
      // .test is a regex method which returns true or false it scans each word sent in its method and matches it with regex pattern
 
-     const hasLower = /[a-z]/.test(passVal ); // checks whether atleast lower case present or not
-     const hasUpper  = /[A-Z]/.test(passVal );// checks whether atleast upper case present or not 
+     const hasLower = /[a-z]/.test(passVal ); // checks whether atleast one lower case present or not
+     const hasUpper  = /[A-Z]/.test(passVal );// checks whether atleast one upper case present or not 
      const hasNumber = /[0-9]/.test(passVal);// checks whether atleast one number is present or not
      const hasSpecial = /[@$!%*?&#]/.test(passVal);// checks whether atleast one special case present or not
 

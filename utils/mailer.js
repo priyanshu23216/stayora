@@ -358,4 +358,71 @@ export const resetPassEmail = async (toEmail, message) => {
 
     return await transporter.sendMail(mailOptions);
 };
+export const passChangeAlertEmail = async (toEmail) => {
+    const mailOptions = {
+        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+        to: toEmail,
+        subject: "Stayora - Security Alert!,Your Password was recently changed",
+        html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Your Stayora password was changed</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: Arial, Helvetica, sans-serif; color: #1f2937;">
+            <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f3f4f6; padding: 32px 12px;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
+                            <tr>
+                                <td align="center" style="padding: 26px 24px; border-bottom: 1px solid #eef0f2;">
+                                    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 32px 30px;">
+                                    <h2 style="margin: 0 0 12px; font-size: 22px; line-height: 30px; text-align: center; color: #111827;">Your password was changed</h2>
+                                    <p style="margin: 0 0 24px; font-size: 15px; line-height: 24px; text-align: center; color: #4b5563;">
+                                        This is a confirmation that your Stayora account password was updated.
+                                    </p>
+                                    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 22px; background-color: #fff7f7; border: 1px solid #ffd5dc; border-radius: 8px;">
+                                        <tr>
+                                            <td style="padding: 16px 18px;">
+                                                <p style="margin: 0; font-size: 14px; line-height: 22px; color: #374151;">
+                                                    <strong style="color: #b4233b;">Change details</strong><br>
+                                                    Your password change is complete.
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                    <p style="margin: 0 0 12px; font-size: 14px; line-height: 22px; color: #374151;">
+                                        <strong>Didn't make this change?</strong> Go to Stayora using your usual method and reset your password immediately.
+                                    </p>
+                                    <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6b7280;">
+                                        For your security, never share your password or verification codes with anyone.
+                                    </p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding: 18px 24px; background-color: #fafafa; border-top: 1px solid #eef0f2; border-radius: 0 0 12px 12px;">
+                                    <p style="margin: 0; font-size: 12px; line-height: 18px; color: #9ca3af;">
+                                        &copy; ${new Date().getFullYear()} Stayora. All rights reserved.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        `,
+    };
+
+    return await transporter.sendMail(mailOptions);
+};
+
+
 
