@@ -248,8 +248,6 @@ router.post('/signup/resend-otp' , async (req, res, next) => {
             return res.redirect('/authenticate/signup');
         };
 
-
-
         // Generate a new OTP, hash it, and store it in Redis with a 5-minute expiration time
         const otp = crypto.randomInt(100000, 1000000).toString();
         const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
