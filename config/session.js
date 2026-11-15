@@ -3,8 +3,8 @@ import session from "express-session";
 import { RedisStore } from "connect-redis";
 import redis from "./redis.js";
 
-// connect-redis v10 expects node-redis v5+ method signatures adapt the shared ioredis client.
-const redisStoreClient = {
+// since both io-redis and connect-redis use different commands(lang) so we created a translator so that they can communicate easily and work together 
+const redisStoreClient = { 
     async get(key) {
         return await redis.get(key);
     },
