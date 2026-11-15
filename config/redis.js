@@ -1,9 +1,9 @@
 import "dotenv/config";
 import Redis from "ioredis";
 
-const redis = new Redis({
+export const redis = new Redis({
     host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT),
+    port: process.env.REDIS_PORT,
     maxRetriesPerRequest: 3,
 });
 
