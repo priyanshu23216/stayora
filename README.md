@@ -235,7 +235,7 @@ Open **`http://localhost:8080`** in your browser.
   </p>
 
   <p>
-    <strong>Founder and Developer</strong> — <a href="https://github.com/priyanshu23216" target="_blank"><strong>Priyanshu Singh</strong></a>
+    <strong>Founder and Developer</strong>-<a href="https://github.com/priyanshu23216" target="_blank"><strong>Priyanshu Singh</strong></a>
   </p>
 
 </div>
