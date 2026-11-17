@@ -380,7 +380,7 @@ router.get('/logout', (req, res, next) => {
     });
 });
 
-// error handling middleware 
+// error handling middleware for any unexpected errors
 router.use( ( err , req , res , next )=>{
     res.send("some unexpected error occured , Please Try Again!");
 });
