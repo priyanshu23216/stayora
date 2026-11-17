@@ -1,26 +1,59 @@
-<h1>Enter Your Email and Password </h1>
+<section class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Log in</h1>
+        </div>
 
-<form action="/authenticate/login/verify" method="POST">
-	<div>
-		<label for="email">Email</label>
-		<input id="email" name="email" type="email" autocomplete="email" required>
-	</div>
+        <div class="auth-body">
+            <h2 class="auth-title">Welcome back to Stayora</h2>
 
-	<div>
-		<label for="password">Password</label>
-		<input id="password" name="password" type="password" autocomplete="current-password" required>
-	</div>
+            <form class="auth-form" action="/authenticate/login/verify" method="POST">
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+                </div>
 
-	<button type="submit">Log in</button>
-</form>
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
 
-<p><a href="/authenticate/forgot-password">Forgot password?</a></p>
+                <div class="auth-forgot">
+                    <a href="/authenticate/forgot-password">Forgot password?</a>
+                </div>
 
-<hr style="margin: 20px 0;">
+                <button type="submit" class="auth-submit">Continue</button>
+            </form>
 
-<div>
-	<a href="/authenticate/google" style="display: inline-block; padding: 10px 16px; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; font-weight: 500; color: #333;">
-		<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px; vertical-align: middle; margin-right: 8px;">
-		Continue with Google
-	</a>
-</div>
+            <div class="auth-divider">or</div>
+
+            <a href="/authenticate/google" class="auth-google-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                    <path fill="#34A853" d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.22 1.18-3.24 0-5.99-2.19-6.97-5.13H1.04v3.14C3.05 21.19 7.21 24 12 24Z"/>
+                    <path fill="#FBBC05" d="M5.03 14.04c-.25-.74-.39-1.54-.39-2.36 0-.82.14-1.62.39-2.36V6.18H1.04C.38 7.5 0 9.16 0 11.68s.38 4.18 1.04 5.5l3.99-3.14Z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.79 0 3.41.62 4.68 1.82l3.51-3.51C18.07 1.19 15.3 0 12 0 7.21 0 3.05 2.81 1.04 6.18l3.99 3.14C6.01 6.94 8.76 4.75 12 4.75Z"/>
+                </svg>
+                Continue with Google
+            </a>
+
+            <p class="auth-footer">
+                Don't have an account? <a href="/authenticate/signup">Sign up</a>
+            </p>
+        </div>
+    </div>
+</section>

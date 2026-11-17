@@ -1,33 +1,76 @@
-<h1>Sign up</h1>
+<section class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Sign up</h1>
+        </div>
 
-<form action="/authenticate/signup/add" method="POST">
-    <div>
-        <label for="name">Name</label>
-        <input id="name" name="name" type="text" maxlength="255" autocomplete="name" required>
-        <span class="error-name" style="color: #e53e3e; display: block; margin-top: 5px; font-size: 13px;"></span>
+        <div class="auth-body">
+            <h2 class="auth-title">Welcome to Stayora</h2>
+
+            <form class="auth-form" action="/authenticate/signup/add" method="POST">
+                <div class="auth-field">
+                    <label for="name">Name</label>
+                    <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        maxlength="255"
+                        placeholder="Your full name"
+                        autocomplete="name"
+                        required
+                    >
+                    <span class="error-name auth-error"></span>
+                </div>
+
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        maxlength="255"
+                        placeholder="you@example.com"
+                        autocomplete="email"
+                        required
+                    >
+                    <span class="error-email auth-error"></span>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        maxlength="255"
+                        placeholder="Enter a strong password"
+                        autocomplete="new-password"
+                        required
+                    >
+                    <span class="error-password auth-error"></span>
+                </div>
+
+                <button type="submit" class="auth-submit">Agree and continue</button>
+            </form>
+
+            <div class="auth-divider">or</div>
+
+            <a href="/authenticate/google" class="auth-google-btn">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+                    <path fill="#34A853" d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.22 1.18-3.24 0-5.99-2.19-6.97-5.13H1.04v3.14C3.05 21.19 7.21 24 12 24Z"/>
+                    <path fill="#FBBC05" d="M5.03 14.04c-.25-.74-.39-1.54-.39-2.36 0-.82.14-1.62.39-2.36V6.18H1.04C.38 7.5 0 9.16 0 11.68s.38 4.18 1.04 5.5l3.99-3.14Z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.79 0 3.41.62 4.68 1.82l3.51-3.51C18.07 1.19 15.3 0 12 0 7.21 0 3.05 2.81 1.04 6.18l3.99 3.14C6.01 6.94 8.76 4.75 12 4.75Z"/>
+                </svg>
+                Continue with Google
+            </a>
+
+            <p class="auth-footer">
+                Already have an account? <a href="/authenticate/login">Log in</a>
+            </p>
+        </div>
     </div>
+</section>
 
-    <div>
-        <label for="email">Email</label>
-        <input id="email" name="email" type="email" maxlength="255" autocomplete="email" required>
-        <span class="error-email" style="color: #e53e3e; display: block; margin-top: 5px; font-size: 13px;"></span>
-    </div>
-
-    <div>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password" maxlength="255" placeholder = "Enter Strong Password " autocomplete="new-password" required>
-        <span class="error-password" style="color: #e53e3e; display: block; margin-top: 5px; font-size: 13px;"></span>
-    </div>
-
-    <button type="submit">Create account</button>
-</form>
-
-<hr style="margin: 20px 0;">
-
-<div>
-    <a href="/authenticate/google" style="display: inline-block; padding: 10px 16px; border: 1px solid #ddd; border-radius: 6px; text-decoration: none; font-weight: 500; color: #333;">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style="width: 18px; vertical-align: middle; margin-right: 8px;">
-        Continue with Google
-    </a>
-</div>
-<script src = "/js/signupValidate.js"></script> // we need to create seperate js file coz browser refuse to run script tag written inside ejs to stop hackers from injecting scripts inside XSS
+<!-- External JS file for client-side validation to comply with CSP -->
+<script src="/js/signupValidate.js" defer></script>

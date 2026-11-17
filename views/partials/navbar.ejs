@@ -1,46 +1,50 @@
-
 <header class="site-header">
+    <nav class="navbar" aria-label="Main navigation">
+        <a href="/" class="nav-logo">Stayora<span>.</span></a>
 
-    <nav class="navbar">
+        <form class="nav-search" action="/listings" method="GET" role="search">
+            <input
+                type="search"
+                name="q"
+                class="nav-search-input"
+                placeholder="Search destinations, stays..."
+                aria-label="Search destinations or stays"
+                value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>"
+            >
+            <button type="submit" class="nav-search-btn" aria-label="Search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+        </form>
 
-        
-        <div class="nav-left">
-            <a href="/" class="nav-logo">Stayora<span>.</span></a>
-        </div>
+        <button
+            type="button"
+            class="nav-toggle"
+            id="navToggle"
+            aria-label="Toggle navigation menu"
+            aria-expanded="false"
+            aria-controls="navMenu"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
 
-        
-        <div class="nav-center">
-            <a href="/listings" class="nav-link">Apartments</a>
-            <a href="/faq" class="nav-link">FAQ</a>
-            <a href="/contact" class="nav-link">Contact</a>
-
-            <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" class="nav-link instagram-link">◎ Instagram </a>
-        </div>
-
-        
-        <div class="nav-right">
-
-             <div class="language-switch">
-                <a href="#" class="language active">EN</a>
-                <a href="#" class="language">ES</a>
-            </div>
+        <div class="nav-menu" id="navMenu">
+            <a href="/listings" class="nav-link">Stays</a>
 
             <% if (typeof hideHostButton === 'undefined' || !hideHostButton) { %>
-                <form method="GET" action="/stayora/listing/create">
-                    <button type="submit" class="host-btn"> + Become a Host</button>
-                </form>
+                <a href="/stayora/listing/create" class="nav-host-btn">+ Become a Host</a>
             <% } %>
 
             <% if (currentUser) { %>
-                <a href="/authenticate/logout" class="nav-link">Logout</a>
+                <a href="/authenticate/logout" class="nav-btn nav-btn-outline">Log out</a>
             <% } else { %>
-                <a href="/authenticate/login" class="nav-link">Login</a>
-                <a href="/authenticate/signup" class="nav-link">Register</a>
+                <a href="/authenticate/login" class="nav-link">Log in</a>
+                <a href="/authenticate/signup" class="nav-btn nav-btn-primary">Sign up</a>
             <% } %>
-
-        
         </div>
-
     </nav>
-
 </header>

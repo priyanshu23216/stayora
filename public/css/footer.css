@@ -1,0 +1,149 @@
+.footer {
+    background-color: #f5f5f7;
+    color: #6e6e73;
+    border-top: 1px solid #d2d2d7;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    padding: 2.5rem 1.5rem 1.5rem;
+}
+
+.footer-container {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1.5fr repeat(4, 1fr);
+    gap: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Brand Column */
+.footer-logo {
+    display: inline-block;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #1d1d1f;
+    text-decoration: none;
+    margin-bottom: 0.6rem;
+}
+
+.footer-logo span {
+    color: #e11d48;
+}
+
+.footer-brand p {
+    margin: 0;
+    max-width: 260px;
+    color: #6e6e73;
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+/* Link Columns */
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.footer-column h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1d1d1f;
+    letter-spacing: -0.005em;
+}
+
+.footer-column a {
+    color: #424245;
+    text-decoration: none;
+    width: fit-content;
+    transition: color 0.15s ease;
+}
+
+.footer-column a:hover {
+    color: #1d1d1f;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* Bottom Bar */
+.footer-bottom {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-top: 1.15rem;
+    border-top: 1px solid #d2d2d7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-bottom p {
+    margin: 0;
+    color: #6e6e73;
+    font-size: 0.76rem;
+}
+
+.footer-socials {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.connect-text {
+    color: #6e6e73;
+    font-size: 0.76rem;
+    margin-right: 0.2rem;
+}
+
+.footer-socials a {
+    color: #6e6e73;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.footer-socials a:hover {
+    color: #1d1d1f;
+    transform: translateY(-1px);
+}
+
+.footer-socials svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .footer-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.75rem 1.5rem;
+    }
+
+    .footer-brand {
+        grid-column: 1 / -1;
+    }
+
+    .footer-brand p {
+        max-width: 420px;
+    }
+}
+
+@media (max-width: 520px) {
+    .footer {
+        padding: 2rem 1rem 1.25rem;
+    }
+
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

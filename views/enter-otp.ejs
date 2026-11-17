@@ -1,37 +1,50 @@
-<h1>Verify your email</h1>
+<section class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Verification</h1>
+        </div>
 
-<p>Enter the six-digit code sent to <strong><%= email %></strong>.</p>
+        <div class="auth-body">
+            <h2 class="auth-title">Verify your email</h2>
+            <p class="auth-subtitle">
+                Enter the six-digit code sent to <strong><%= email %></strong>.
+            </p>
 
-<form action="/authenticate/signup/verify-otp" method="POST">
-	<input type="hidden" name="email" value="<%= email %>">
+            <form class="auth-form" action="/authenticate/signup/verify-otp" method="POST">
+                <input type="hidden" name="email" value="<%= email %>">
 
-	<div>
-		<label for="otp">Verification code</label>
-		<input
-			id="otp"
-			name="otp"
-			type="text"
-			inputmode="numeric"
-			autocomplete="one-time-code"
-			pattern="[0-9]{6}"
-			minlength="6"
-			maxlength="6"
-			required
-		>
-	</div>
+                <div class="auth-field">
+                    <label for="otp">Verification code</label>
+                    <input
+                        id="otp"
+                        name="otp"
+                        type="text"
+                        class="auth-otp-input"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        placeholder="000000"
+                        pattern="[0-9]{6}"
+                        minlength="6"
+                        maxlength="6"
+                        required
+                    >
+                </div>
 
-	<button type="submit">Verify email</button>
-</form>
+                <button type="submit" class="auth-submit">Verify email</button>
+            </form>
 
-<form action="/authenticate/signup/resend-otp" method="POST">
-	<input type="hidden" name="email" value="<%= email %>">
-	<p id="resend-countdown-message">
-		You can request another code in <span id="resend-countdown">60</span> seconds.
-	</p>
-	<button id="resend-otp-button" type="submit" hidden>Resend code</button>
-</form>
-<script src = '/js/resendOTP.js'></script>
+            <form class="auth-resend-form" action="/authenticate/signup/resend-otp" method="POST">
+                <input type="hidden" name="email" value="<%= email %>">
+                <p id="resend-countdown-message" class="auth-countdown">
+                    You can request another code in <span id="resend-countdown">60</span> seconds.
+                </p>
+                <button id="resend-otp-button" type="submit" class="auth-btn-secondary" hidden>
+                    Resend code
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
 
-<!-- we need to create seperate js file coz browser refuse to run script tag written inside ejs to stop hackers from injecting scripts inside XSS -->
-
-
+<!-- External JS file for resend countdown to comply with CSP -->
+<script src="/js/resendOTP.js" defer></script>
