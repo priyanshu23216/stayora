@@ -35,8 +35,8 @@
         <div class="nav-menu" id="navMenu">
             <a href="/listings" class="nav-link">Stays</a>
 
-            <% if (typeof hideHostButton === 'undefined' || !hideHostButton) { %>
-                <a href="/stayora/listing/create" class="nav-host-btn">+ Become a Host</a>
+            <% if (!currentUser || currentUser.ROLE != 'host' ) { %>
+                <a href="/listings/update/host" class="nav-host-btn">+ Become a Host</a>
             <% } %>
 
             <% if (currentUser) { %>

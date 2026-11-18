@@ -12,6 +12,7 @@ import db from "./config/db.js";
 import redis from "./config/redis.js";
 import passport from "./config/passport.js";
 import users from "./routes/authentication.js";
+import lists from "./routes/listings.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +34,7 @@ app.use(passport.initialize());// to initialize passport middleware for authenti
 app.use(passport.session());// to connect passport with express-session middleware and manage user sessions
 app.use(flash()); // to display flash messages to users after certain actions, such as successful login , Logout or signup
 
-app.use((req, res, next) => {
+app.use((req, res, next) => {// this will make value available in all ejs file globally
     res.locals.currentUser = req.user;
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
@@ -41,6 +42,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/authenticate', users);
+app.use('/listings' , lists);
 
 app.get("/", (req, res) => {
     res.render("index", { title: "Home" });
