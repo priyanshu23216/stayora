@@ -28,7 +28,7 @@
 }
 
 .footer-logo span {
-    color: #e11d48;
+    color: var(--apple-primary);
 }
 
 .footer-brand p {
