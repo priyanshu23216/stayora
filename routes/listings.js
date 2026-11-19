@@ -39,7 +39,7 @@ lists.get('/' , async( req , res , next)=>{
         }
         const limit = 12; // no of rows to be fetched at one time from MySQL and just display that on listings page
         const offset = ( page - 1 ) * limit; // no of start rows to be skipped
-        const [listings] = await db.execute(`SELECT * FROM properties WHERE city = ? ORDER BY price_per_night LIMIT ? OFFSET ?`,[city, limit, offset]
+        const [listings] = await db.execute(`SELECT * FROM properties WHERE city = ? AND verification_status = 'approved' ORDER BY price_per_night , ID LIMIT ? OFFSET ?`,[city, String(limit), String(offset)]
 );
     }
     res.render('listings/listings');
