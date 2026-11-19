@@ -1,0 +1,14 @@
+<% const page = typeof currentPage !== 'undefined' ? currentPage : 1; %>
+<% const total = typeof totalPages !== 'undefined' ? totalPages : 1; %>
+
+<nav class="pagination" aria-label="Listings pagination">
+    <% if (page > 1) { %>
+        <a href="/listings?page=<%= page - 1 %>" class="pagination-btn">&larr; Previous</a>
+    <% } %>
+
+    <span class="pagination-info">Page <%= page %> of <%= total %></span>
+
+    <% if (page < total) { %>
+        <a href="/listings?page=<%= page + 1 %>" class="pagination-btn">Next &rarr;</a>
+    <% } %>
+</nav>

@@ -24,6 +24,24 @@ export const isLoggedIn = (req, res, next) => {
 };
 
 lists.get('/' , async( req , res , next)=>{
+     let city = req.query.city;
+    if( city ){ // check if city exists in query string and if it exists then remove its additional space
+        city = city.trim();
+    };
+    const type = req.query.type;
+    const price = req.query.price;
+    const sort = req.query.sort;
+
+    if ( city &&  !type && !price && !sort ){
+        let page = parseInt(req.query.page);
+        if(!page || page < 0){
+            page = 1;
+        }
+        const limit = 12; // no of rows to be fetched at one time from MySQL and just display that on listings page
+        const offset = ( page - 1 ) * limit; // no of start rows to be skipped
+        const [listings] = await db.execute(`SELECT * FROM properties WHERE city = ? ORDER BY TITLE  LIMIT ? OFFSET ?`,[city, limit, offset]
+);
+    }
     res.render('listings/listings');
 })
 

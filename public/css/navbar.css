@@ -69,12 +69,13 @@ body {
     border: 1px solid #3a3a3c;
     border-radius: 9999px;
     padding: 3px 3px 3px 14px;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-search:focus-within {
     background-color: #2c2c2e;
     border-color: var(--apple-primary);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
 }
 
 .nav-search-input {
@@ -83,14 +84,31 @@ body {
     border: none;
     outline: none;
     background: transparent;
+    color-scheme: dark;
     font-family: var(--apple-font-text);
     font-size: 14px;
     line-height: 20px;
     color: #f5f5f7;
+    padding-right: 6px;
 }
 
 .nav-search-input::placeholder {
     color: #86868b;
+}
+
+.nav-search-input::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+    transition: opacity 0.18s ease;
+}
+
+.nav-search-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.95;
+}
+
+.nav-search-input::-webkit-search-cancel-button {
+    cursor: pointer;
+    opacity: 0.65;
 }
 
 .nav-search-btn {
