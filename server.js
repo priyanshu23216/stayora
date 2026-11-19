@@ -28,9 +28,7 @@ app.set("layout", "layouts/boilerplate.ejs");
 // This keeps all of Helmet's default CSP protections while allowing Unsplash and future Cloudinary images to load.
 app.use(helmet({contentSecurityPolicy: {
             useDefaults: true,
-            directives: { // adding source from where images are allowed in browser
-                "img-src": ["'self'","data:","https://images.unsplash.com","https://res.cloudinary.com"],
-            },
+            directives: { "img-src": ["self","data:","https://images.unsplash.com","https://res.cloudinary.com"] },// adding source from where images are allowed in browser
         },
     })
 );
