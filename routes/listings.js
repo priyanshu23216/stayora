@@ -20,7 +20,7 @@ export const isLoggedIn = (req, res, next) => {
         req.flash("error", "Please log in first.");
         return res.redirect("/authenticate/login");
     }
-    next();
+    return next();
 };
 
 router.get('/update/host' , isLoggedIn, async( req , res , next)=>{
