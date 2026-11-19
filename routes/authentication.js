@@ -143,7 +143,7 @@ router.post('/signup/add', signupLimiter, async (req, res, next) => {
         const email = result.data.email;;
         const password = result.data.password;
 
-        const [existingUsers] = await db.query(
+        const [existingUsers] = await db.execute(
             "SELECT ID FROM USERS WHERE EMAIL = ?",
             [email]
         );
@@ -292,7 +292,7 @@ router.post('/forgot-password/submit', forgotPassIPlimiter ,forgotPassEmailLimit
             return res.redirect('/authenticate/forgot-password');
         };
         const email = result.data.email;
-        const [arr] = await db.query('SELECT ID , PASSWORD FROM USERS WHERE EMAIL = ?' , [email]);
+        const [arr] = await db.execute('SELECT ID , PASSWORD FROM USERS WHERE EMAIL = ?' , [email]);
         const user = arr[0];
         if ( !user ){// if email not found in database then send same message to user to prevent email enumeration attacks
             req.flash("success" , "If email exists then OTP has been sent to your email for password reset.");

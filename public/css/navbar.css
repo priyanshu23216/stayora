@@ -160,6 +160,27 @@ body {
     border-color: #6e6e73;
 }
 
+.nav-dashboard-btn {
+    font-family: var(--apple-font-text);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    color: #2997ff;
+    text-decoration: none;
+    padding: 7px 14px;
+    border-radius: 9999px;
+    border: 1px solid rgba(41, 151, 255, 0.35);
+    background-color: rgba(0, 113, 227, 0.14);
+    white-space: nowrap;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.nav-dashboard-btn:hover {
+    background-color: var(--apple-primary);
+    border-color: var(--apple-primary);
+    color: var(--apple-neutral);
+}
+
 .nav-btn {
     font-family: var(--apple-font-text);
     font-size: 12px;
@@ -252,6 +273,7 @@ body {
 
     .nav-link,
     .nav-host-btn,
+    .nav-dashboard-btn,
     .nav-btn {
         text-align: center;
     }

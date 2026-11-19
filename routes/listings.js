@@ -15,6 +15,21 @@ import "dotenv/config";
 
 const lists = express.Router();
 
+export const isLoggedIn = (req, res, next) => {
+    if (!req.user) {
+        req.flash("error", "Please log in first.");
+        return res.redirect("/authenticate/login");
+    }
+    next();
+};
+
+router.get('/update/host' , isLoggedIn, async( req , res , next)=>{
+    if( req.user.ROLE !== 'host'){
+        await db.execute('ALTER UPDATE USERS ROLE = ? WHERE ID = ?' , ['host' , req.users.ID] );
+        req.flash("success" , "Welcome to Stayora Hosting! You're ready to list your first stay.");
+        return res.redirect('/');
+    };
+});
 
 
 

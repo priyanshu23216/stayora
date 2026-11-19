@@ -12,7 +12,7 @@ passport.serializeUser((user, done) => {
 // Deserialize user by ID
 passport.deserializeUser(async (id, done) => {
     try {
-        const [rows] = await db.query(
+        const [rows] = await db.execute(
             "SELECT ID, NAME, EMAIL, ROLE FROM USERS WHERE ID = ?",
             [id]
         );
@@ -36,7 +36,7 @@ passport.use(
             try {
                 // check if the user exists in the database by email
                 const emailCleaned = email.toLowerCase().trim(); // Normalize the email to lowercase and trim whitespace
-                const [result] = await db.query(
+                const [result] = await db.execute(
                     "SELECT * FROM USERS WHERE EMAIL = ?",
                     [emailCleaned]
                 );
@@ -78,7 +78,7 @@ passport.use(
         async (accessToken, refreshToken, profile, done) => {
             try {
                 // Check if the user already exists in the database by Google ID
-                const [user] = await db.query(
+                const [user] = await db.execute(
                     "SELECT ID, NAME, EMAIL, ROLE FROM USERS WHERE GOOGLE_ID = ?",
                     [profile.id]
                 );
@@ -93,7 +93,7 @@ passport.use(
                     email = profile.emails[0].value.toLowerCase().trim(); // Normalize the email to lowercase and trim Extraspaces
                 };
                 if (email) { // If email is found, check if it exists in the database
-            const [usersByEmail] = await db.query("SELECT ID, NAME, EMAIL, ROLE FROM USERS WHERE EMAIL = ?", [email] );     
+            const [usersByEmail] = await db.execute("SELECT ID, NAME, EMAIL, ROLE FROM USERS WHERE EMAIL = ?", [email] );     
                 if (usersByEmail.length > 0) {
                         await db.execute( "UPDATE USERS SET GOOGLE_ID = ? WHERE EMAIL = ?", [profile.id, email] );
                         return done(null, usersByEmail[0]);
