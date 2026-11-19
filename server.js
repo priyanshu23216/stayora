@@ -24,7 +24,16 @@ app.set("views", path.join(__dirname, "views"));
 app.use(expressLayouts);
 app.set("layout", "layouts/boilerplate.ejs");
 
-app.use(helmet()); // to protect from XSS attacks and other vulnerabilities
+ // to protect from XSS( cross site scripting)and other vulnerabilities we use helmet()
+// This keeps all of Helmet's default CSP protections while allowing Unsplash and future Cloudinary images to load.
+app.use(helmet({contentSecurityPolicy: {
+            useDefaults: true,
+            directives: { // adding source from where images are allowed in browser
+                "img-src": ["'self'","data:","https://images.unsplash.com","https://res.cloudinary.com"],
+            },
+        },
+    })
+);
 app.use(express.static(path.join(__dirname, "public")));// to serve static files from the public directory
 app.use(express.urlencoded({ extended: true }));// to parse incoming request bodies
 app.use(express.json());// to parse incoming request bodies
