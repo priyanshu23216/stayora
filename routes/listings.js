@@ -23,16 +23,22 @@ export const isLoggedIn = (req, res, next) => {
     return next();
 };
 
-router.get('/update/host' , isLoggedIn, async( req , res , next)=>{
-    if( req.user.ROLE !== 'host'){
+lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
+    try{
+        if( req.user.ROLE !== 'host'){
         await db.execute('ALTER UPDATE USERS ROLE = ? WHERE ID = ?' , ['host' , req.users.ID] );
         req.flash("success" , "Welcome to Stayora Hosting! You're ready to list your first stay.");
         return res.redirect('/');
     };
+    }catch( err ){
+        return next( err );
+    };
 });
 
-
-
+//error handling middleware for any unexpected errors in lists route
+lists.use(( err , req , res , next)=>{
+    res.send("Some unexpected error occured .Please Try Again!");
+});
 
 
 export default lists;
