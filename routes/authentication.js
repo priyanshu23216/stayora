@@ -119,7 +119,7 @@ async function forgotPassEmailLimiter ( req , res , next ){
 
 
 router.get('/login', (req, res) => {
-    res.render('login', { title: 'login' });
+    res.render('auth/login', { title: 'login' });
 });
 
 router.post('/login/verify',loginIPlimiter, loginEmailLimiter, passport.authenticate("local", {
@@ -131,7 +131,7 @@ router.post('/login/verify',loginIPlimiter, loginEmailLimiter, passport.authenti
 });
 
 router.get('/signup', (req, res) => {
-    res.render('signup', { title: 'Sign Up' });
+    res.render('auth/signup', { title: 'Sign Up' });
 });
 
 router.post('/signup/add', signupLimiter, async (req, res, next) => {
@@ -170,7 +170,7 @@ router.post('/signup/add', signupLimiter, async (req, res, next) => {
            return  next(err);
         };
 
-        return res.render('enter-otp', { title: 'Verify OTP', email });
+        return res.render('auth/enter-otp', { title: 'Verify OTP', email });
         }else if ( !result.success){
             req.flash("error" , result.error.issues[0].message);
             return res.redirect('/authenticate/signup');
@@ -186,7 +186,7 @@ router.post('/signup/verify-otp', async (req, res, next) => {
     try {
         if( !result.success ){
             if( result.error.issues[0].path == "otp" ){
-                return res.render('enter-otp' , {email : req.body.email.toLowerCase().trim() , title : "Verify-OTP" , error : [ result.error.issues[0].message ] } );
+                return res.render('auth/enter-otp' , {email : req.body.email.toLowerCase().trim() , title : "Verify-OTP" , error : [ result.error.issues[0].message ] } );
             } else {
                 req.flash( "error" , result.error.issues[0].message);
                 return res.redirect('/authenticate/signup');
@@ -203,7 +203,7 @@ router.post('/signup/verify-otp', async (req, res, next) => {
         const storedOTp = await redis.get(`otp:${SignupEmail}`);
 
         if( enteredHashOTP !== storedOTp ){// wrong otp entered
-            return res.render('enter-otp' , { title: 'Verify OTP', email: SignupEmail , error : ["Incorrect OTP ,Please re-enter correct OTP"] });
+            return res.render('auth/enter-otp' , { title: 'Verify OTP', email: SignupEmail , error : ["Incorrect OTP ,Please re-enter correct OTP"] });
         };
 
         const StoredSignUp = JSON.parse(pendingSignup);
@@ -259,7 +259,7 @@ router.post('/signup/resend-otp' , async (req, res, next) => {
         try {
             await sendOtpEmail(email, otp);
             req.flash("success", "A new OTP has been sent to your email.");
-            return res.render('enter-otp', { title: 'Verify OTP', email });
+            return res.render('auth/enter-otp', { title: 'Verify OTP', email });
         } catch (err) {
             return next(err);
         };
@@ -281,7 +281,7 @@ router.get('/google/callback', passport.authenticate('google', {
 });
 
 router.get('/forgot-password', (req, res) => {
-    res.render('forgot-password', { title: 'Forgot Password' });
+    res.render('auth/forgot-password', { title: 'Forgot Password' });
 });
 
 router.post('/forgot-password/submit', forgotPassIPlimiter ,forgotPassEmailLimiter, async( req , res , next )=>{
@@ -331,7 +331,7 @@ router.get('/forgot-password/:token' , async ( req , res , next)=>{
        req.flash("error" , "Reset link is invalid or expired" );
        return  res.redirect('/forgot-password');
     }
-    return res.render('reset-password' , { title : "reset-password" , token } );
+    return res.render('auth/reset-password' , { title : "reset-password" , token } );
     } catch( err ){
         return next( err );
     }
@@ -349,7 +349,7 @@ router.post('/reset-password/:token' , async ( req , res , next)=>{
     const result = resetPassword.safeParse(req.body);
     try{
         if( !result.success ){
-           return  res.render('reset-password' , { title : "reset-password" ,token , error : result.error.issues[0].message} );
+           return  res.render('auth/reset-password' , { title : "reset-password" ,token , error : result.error.issues[0].message} );
         }
         const password = result.data.password;
         const hashedPass = await bcrypt.hash( password , 12);

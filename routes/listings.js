@@ -23,6 +23,10 @@ export const isLoggedIn = (req, res, next) => {
     return next();
 };
 
+lists.get('/' , async( req , res , next)=>{
+    res.render('listings/listings');
+})
+
 lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
     try{
         if( req.user.ROLE !== 'host'){
