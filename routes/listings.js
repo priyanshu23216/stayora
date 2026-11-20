@@ -64,13 +64,42 @@ lists.get('/' , async( req , res , next)=>{
     return res.render('listings/listings' ,  {title : `Stays in ${ city }` , listings , currentPage : page , totalPages , searchQuery : city } );
 
     }
+    if ( !city && type ==="All Types" && price === "Any Price" && sort === "Low to High" ){
+        let page = parseInt(req.query.page); // to fetch page number in the form of integer
+        if(!page || page < 0){
+            page = 1;
+        }
+
+        const cacheKey = `listingsBy:${type}:${price}:${sort}:${page}`;
+        const cacheValue = await redis.get(cacheKey);
+
+        if ( cacheValue ){
+            const parsedObj = JSON.parse(cacheValue);
+            return res.render('listings/listings' , { type : type , price : price , sort : sort ,listings : parsedObj.listings , totalPages : parsedObj.totalPages , title : `Stays All` , currentPage : page  });
+        };
+
+        const limit = 12;
+        const offset = ( page - 1 ) * limit;
+
+         const result = await db.execute(`SELECT * FROM properties WHERE verification_status = 'approved' ORDER BY price_per_night , ID LIMIT ? OFFSET ?`,[String(limit), String(offset)] );
+         const listings = result[ 0 ];
+
+         const countResult = await db.execute(`SELECT COUNT(*) AS total FROM properties WHERE verification_status = 'approved'` );
+        const propertiesCount = countResult[0][0].total;
+         const totalPages = Math.ceil(propertiesCount/12);
+
+         await redis.set(cacheKey , JSON.stringify({listings , totalPages}) , "EX" , 600);
+
+         return res.render('listings/listings' , { type : type , price : price , sort : sort ,title : `Stays All` , listings , currentPage : page , totalPages });
+        
+    }
     
 })
 
 lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
     try{
         if( req.user.ROLE !== 'host'){
-        await db.execute('ALTER UPDATE USERS SET ROLE = ? WHERE ID = ?' , ['host' , req.user.ID] );
+        await db.execute('UPDATE USERS SET ROLE = ? WHERE ID = ?' , ['host' , req.user.ID] );
         req.flash("success" , "Welcome to Stayora Hosting! You're ready to list your first stay.");
         return res.redirect('/');
     };
