@@ -171,13 +171,13 @@ lists.get('/' , async( req , res , next)=>{
 
         let result;
         if ( sort === "Low to High" ){
-            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night ASC , properties.ID LIMIT ? OFFSET ?` , values );
+            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night  , properties.ID LIMIT ? OFFSET ?` , values );
         } else if ( sort === "High to Low" ){
             result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night DESC , properties.ID LIMIT ? OFFSET ?` , values );
         } else if ( sort === "Top Rated" ){
             result = await db.execute(`SELECT properties.* FROM properties LEFT JOIN review ON properties.ID = review.property_id ${condition} GROUP BY properties.ID ORDER BY AVG(review.RATING) DESC , properties.ID LIMIT ? OFFSET ?` , values );
         } else {
-            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night ASC , properties.ID LIMIT ? OFFSET ?` , values );
+            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night  , properties.ID LIMIT ? OFFSET ?` , values );
         }
 
         const listings = result[0];
@@ -234,13 +234,13 @@ lists.get('/' , async( req , res , next)=>{
 
         let result;
         if ( sort === "Low to High" ){
-            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night ASC , properties.ID LIMIT ? OFFSET ?` , values );
+            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night  , properties.ID LIMIT ? OFFSET ?` , values );
         } else if ( sort === "High to Low" ){
             result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night DESC , properties.ID LIMIT ? OFFSET ?` , values );
         } else if ( sort === "Top Rated" ){
             result = await db.execute(`SELECT properties.* FROM properties LEFT JOIN review ON properties.ID = review.property_id ${condition} GROUP BY properties.ID ORDER BY AVG(review.RATING) DESC , properties.ID LIMIT ? OFFSET ?` , values );
         } else {
-            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night ASC , properties.ID LIMIT ? OFFSET ?` , values );
+            result = await db.execute(`SELECT * FROM properties ${condition} ORDER BY properties.price_per_night  , properties.ID LIMIT ? OFFSET ?` , values );
         }
 
         const listings = result[0];
