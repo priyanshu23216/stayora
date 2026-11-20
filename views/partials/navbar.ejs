@@ -11,7 +11,9 @@
                 class="nav-search-input"
                 placeholder="Search destinations, cities..."
                 aria-label="Search destinations or cities"
-                value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>"
+                <% if ( typeof searchQuery !== 'undefined') { %>
+                value = <%= searchQuery %>
+               <% } %> 
             >
             <datalist id="stayora-cities">
                 <option value="Agra"></option>

@@ -33,22 +33,44 @@ lists.get('/' , async( req , res , next)=>{
     const sort = req.query.sort;
 
     if ( city &&  !type && !price && !sort ){
-        let page = parseInt(req.query.page);
+        let page = parseInt(req.query.page); // to fetch page number in the form of integer
         if(!page || page < 0){
             page = 1;
         }
-        const limit = 12; // no of rows to be fetched at one time from MySQL and just display that on listings page
-        const offset = ( page - 1 ) * limit; // no of start rows to be skipped
-        const [listings] = await db.execute(`SELECT * FROM properties WHERE city = ? AND verification_status = 'approved' ORDER BY price_per_night , ID LIMIT ? OFFSET ?`,[city, String(limit), String(offset)]
-);
+        // use redis to store caching and if that data is present in redis just render from redis instead of fetching from each time in MySQL
+        const cacheKey = `listingsBy : ${city} : ${page}`;
+        const cacheValue = await redis.get(cacheKey);
+        
+        if(cacheValue ){ // if that filtered city already exists in caching then render it simply
+            const parsedObj = JSON.parse(cacheValue);
+            return res.render('listings/listings' , { listings : parsedObj.listings , totalPages : parsedObj.totalPages , title : `Stays in ${city}` , currentPage : page , searchQuery : city }  );
+        }
+
+    const limit = 12; // no of rows to be fetched at one time from MySQL and just display that on listings page
+    const offset = ( page - 1 ) * limit; // no of start rows to be skipped
+
+    // to get properties of that searched city sorted by price_per_night in ASC order
+    const result = await db.execute(`SELECT * FROM properties WHERE city = ? AND verification_status = 'approved' ORDER BY price_per_night , ID LIMIT ? OFFSET ?`,[city, String(limit), String(offset)] );
+    const listings = result[0];
+
+    // to count total number of properties in that city
+    const countResult = await db.execute(`SELECT COUNT(*) AS total FROM properties WHERE city = ? AND verification_status = 'approved'`,[city] );
+    const propertiesCount = countResult[0][0].total;
+    const totalPages = Math.ceil(propertiesCount/12);
+
+    // save that data in redis cache before sending response 
+    await redis.set(cacheKey , JSON.stringify({ listings , totalPages}) , "EX" , 600); 
+
+    return res.render('listings/listings' ,  {title : `Stays in ${ city }` , listings , currentPage : page , totalPages , searchQuery : city } );
+
     }
-    res.render('listings/listings');
+    
 })
 
 lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
     try{
         if( req.user.ROLE !== 'host'){
-        await db.execute('ALTER UPDATE USERS ROLE = ? WHERE ID = ?' , ['host' , req.users.ID] );
+        await db.execute('ALTER UPDATE USERS SET ROLE = ? WHERE ID = ?' , ['host' , req.user.ID] );
         req.flash("success" , "Welcome to Stayora Hosting! You're ready to list your first stay.");
         return res.redirect('/');
     };

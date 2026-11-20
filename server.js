@@ -28,7 +28,11 @@ app.set("layout", "layouts/boilerplate.ejs");
 
 app.use(helmet({contentSecurityPolicy: {
             useDefaults: true,// This keeps all of Helmet's default CSP protections
-            directives: {  "img-src": ["'self'","data:","https://images.unsplash.com","https://res.cloudinary.com" ] },// adding source from where images are allowed in browser
+            directives: {
+                "img-src": ["'self'", "data:", "https://images.unsplash.com", "https://res.cloudinary.com"],
+                "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+                "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
+            },
         },
     })
 );

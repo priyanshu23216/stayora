@@ -1,14 +1,83 @@
-<% const page = typeof currentPage !== 'undefined' ? currentPage : 1; %>
-<% const total = typeof totalPages !== 'undefined' ? totalPages : 1; %>
+<!-- 1. Filter Bar -->
+<section class="listings-filters">
+    <form action="/listings" method="GET" class="filter-form">
+        <div class="filter-group">
+            <label for="type">Property Type</label>
+            <select name="type" id="type">
+                <option value="">All Types</option>
+                <option value="hotel">Hotel</option>
+                <option value="resort">Resort</option>
+                <option value="villa">Villa</option>
+                <option value="apartment">Apartment</option>
+                <option value="guesthouse">Guesthouse</option>
+                <option value="hostel">Hostel</option>
+            </select>
+        </div>
 
+        <div class="filter-group">
+            <label for="price">Price</label>
+            <select name="price" id="price">
+                <option value="">Any Price</option>
+                <option value="under_3000">Under ₹3,000</option>
+                <option value="3000_5000">₹3,000 – ₹5,000</option>
+                <option value="5000_10000">₹5,000 – ₹10,000</option>
+                <option value="10000_20000">₹10,000 – ₹20,000</option>
+                <option value="above_20000">₹20,000+</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="sort">Sort By</label>
+            <select name="sort" id="sort">
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating_desc">Top Rated</option>
+            </select>
+        </div>
+
+        <button type="submit" class="filter-btn">Apply</button>
+        <a href="/listings" class="filter-reset">Reset</a>
+    </form>
+</section>
+
+<!-- 2. Properties Cards -->
+<section class="listings-section">
+    <% if (listings.length === 0) { %>
+        <div class="no-listings">
+            <h2>No stays found</h2>
+            <p>Try searching another city or clearing your filters.</p>
+            <a href="/listings" class="view-more-btn">Show All Stays</a>
+        </div>
+    <% } else { %>
+        <div class="listings-grid">
+            <% for (let item of listings) { %>
+                <div class="listing-card">
+                    <div class="listing-img-box">
+                        <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img">
+                        <span class="listing-type"><%= item.PROPERTY_TYPE %></span>
+                    </div>
+
+                    <div class="listing-info">
+                        <h3 class="listing-title"><%= item.title %></h3>
+                        <p class="listing-location"><%= item.city %>, <%= item.state %></p>
+                        <p class="listing-price">From ₹<%= item.price_per_night %> <span>/ night</span></p>
+                        <a href="/listings/<%= item.ID %>" class="view-more-btn">View More</a>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    <% } %>
+</section>
+
+<!-- 3. Pagination Buttons -->
 <nav class="pagination" aria-label="Listings pagination">
-    <% if (page > 1) { %>
-        <a href="/listings?page=<%= page - 1 %>" class="pagination-btn">&larr; Previous</a>
+    <% if (currentPage > 1) { %>
+        <a href="/listings?city=<%= searchQuery %>&page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
     <% } %>
 
-    <span class="pagination-info">Page <%= page %> of <%= total %></span>
+    <span class="pagination-info">Page <%= currentPage %> of <%= totalPages %></span>
 
-    <% if (page < total) { %>
-        <a href="/listings?page=<%= page + 1 %>" class="pagination-btn">Next &rarr;</a>
+    <% if (currentPage < totalPages) { %>
+        <a href="/listings?city=<%= searchQuery %>&page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
     <% } %>
 </nav>
