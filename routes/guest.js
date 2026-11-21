@@ -1,0 +1,22 @@
+import express from "express";
+import db from "../config/db.js";
+import redis from "../config/redis.js";
+import { isLoggedIn, isGuest } from "../middlewares/auth.js";
+
+const guestRouter = express.Router();
+
+// Protect all /guest/* routes: user must be logged in with guest access
+guestRouter.use(isLoggedIn, isGuest);
+
+// Guest routes will go here, e.g.:
+// guestRouter.get("/dashboard", async (req, res, next) => { ... });
+// guestRouter.get("/bookings", async (req, res, next) => { ... });
+
+// Error-handling middleware for guest routes
+guestRouter.use((err, req, res, next) => {
+    console.error("Guest route error:", err);
+    req.flash("error", "Something went wrong. Please try again.");
+    return res.redirect("/");
+});
+
+export default guestRouter;

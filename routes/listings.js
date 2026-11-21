@@ -267,6 +267,7 @@ lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
 //error handling middleware for any unexpected errors in lists route
 lists.use(( err , req , res , next)=>{
     res.send("Some unexpected error occured .Please Try Again!");
+    return res.redirect('/');
 });
 
 

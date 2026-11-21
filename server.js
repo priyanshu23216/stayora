@@ -13,6 +13,9 @@ import redis from "./config/redis.js";
 import passport from "./config/passport.js";
 import users from "./routes/authentication.js";
 import lists from "./routes/listings.js";
+import hostRoutes from "./routes/host.js";
+import guestRoutes from "./routes/guest.js";
+import adminRoutes from "./routes/admin.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,7 +56,10 @@ app.use((req, res, next) => {// this will make value available in all ejs file g
 });
 
 app.use('/authenticate', users);
-app.use('/listings' , lists);
+app.use('/listings', lists);
+app.use('/host', hostRoutes);
+app.use('/guest', guestRoutes);
+app.use('/admin', adminRoutes);
 
 app.get("/", (req, res) => {
     res.render("index", { title: "Home" });
