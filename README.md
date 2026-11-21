@@ -19,7 +19,7 @@
   </p>
 
   <p>
-    <strong>Stayora</strong> is a production-grade, full-stack hospitality marketplace engineered to bridge the gap between discerning travelers and verified property hosts. Featuring an enterprise-grade 11-table relational database architecture, distributed Redis session caching, strict Zod and regular expression schema sanitization, multi-provider authentication, and transactional email automation.
+    <strong>Stayora</strong> is a production-grade, full-stack hospitality marketplace engineered to bridge the gap between discerning travelers and verified property hosts. Featuring an enterprise-grade 11-table relational database architecture, distributed Redis session & query caching, strict Zod and regular expression schema sanitization, multi-provider authentication, password recovery, and transactional email automation.
   </p>
 
 </div>
@@ -29,16 +29,18 @@
 ## 📌 Architectural Highlights
 
 - **Clean Hospitality Relational Model:** 11-table MySQL schema with foreign keys, cascading integrity rules, and explicit entity relationships across users, properties, room tiers, reviews, and bookings.
-- **Enterprise Input Validation:** Dual-layer defense with client-side real-time validation and backend **Zod** schemas alongside granular **Regular Expressions (Regex)** for password security (minimum 8 characters, capital & lowercase letters, numbers, and special characters) and email sanitization.
-- **High-Performance In-Memory Tier:** In-memory session persistence and temporary state caching via `ioredis` and `connect-redis` with automatic TTL (Time-To-Live) management.
-- **Secure Authentication Pipeline:**
+- **Enterprise Input Validation:** Dual-layer defense with client-side validation and backend **Zod** schemas alongside granular **Regular Expressions (Regex)** for password security (minimum 8 characters, capital & lowercase letters, numbers, and special characters) and email sanitization.
+- **High-Performance In-Memory Tier:** Redis-backed session persistence (`ioredis` + `connect-redis`), temporary OTP/reset-token storage, and 10-minute TTL caching for paginated property search & filter queries.
+- **Secure Authentication & Recovery Pipeline:**
   - Local credentials with 12-round `bcrypt` salting.
   - Google OAuth 2.0 social sign-in via Passport.js.
-  - Cryptographic token generation and email OTP verification.
-  - Hybrid rate limiting (Express Rate Limiter + custom Redis-backed attempt counters for brute-force mitigation).
-- **Transactional Communications:** Automated OTP verification emails via `nodemailer`, with HTML email templates ready in `utils/mailer.js` for booking confirmations, cancellations, and password recovery.
+  - Cryptographic OTP generation (SHA-256 hashed in Redis) for email verification.
+  - End-to-end password recovery with SHA-256 hashed 32-byte Redis tokens, email enumeration protection, and post-reset security alert emails.
+  - Hybrid rate limiting (Express Rate Limiter + custom Redis-backed IP & email attempt counters for login, OTP resend, and password reset).
+- **Property Discovery Engine:** Paginated stays catalog (`/listings`) supporting city search with autocomplete, property type filters, price brackets, sorting (`Low to High`, `High to Low`, `Top Rated`), and Redis query caching.
+- **Transactional Communications:** Active `nodemailer` flows for signup OTP verification, password reset links, and password-change security alerts, plus pre-built HTML email templates in `utils/mailer.js` for booking confirmations and cancellations.
 - **Media Management:** Cloudinary CDN (`config/cloudinary.js`) and Multer (`config/multer.js`) configured for upcoming multi-image uploads across properties and rooms.
-- **Security Hardening:** Layered defense with `helmet` HTTP headers (default CSP `script-src 'self'` blocks inline `<script>` tags in EJS—keep client JS in `public/js/`), `express-rate-limit`, secure session cookies, and flash notifications.
+- **Security Hardening:** Layered defense with `helmet` HTTP headers (custom CSP allowing `images.unsplash.com`, `res.cloudinary.com`, and Google Fonts while keeping `script-src 'self'`), `express-rate-limit`, `httpOnly` session cookies, `method-override`, and flash notifications.
 
 ---
 
@@ -47,13 +49,13 @@
 | Table | Purpose |
 |---|---|
 | `USERS` | Stores guests, hosts, and administrator profiles, credentials, and OAuth identifiers. |
-| `PROPERTIES` | Core stay catalogue (hotels, villas, apartments, cabins) with geolocation, pricing, and descriptions. |
+| `PROPERTIES` | Core stay catalogue (hotels, resorts, hostels, guesthouses, villas, apartments) with geolocation, pricing, verification status, and descriptions. |
 | `PROPERTY_IMAGES` | High-resolution property showcase galleries and exterior photographs. |
-| `ROOMS` | Unit categories, guest capacities, bed arrangements, and nightly pricing tiers. |
+| `ROOMS` | Unit categories, guest capacities, inventory counts, and nightly pricing tiers. |
 | `ROOM_IMAGES` | Interior room photographs and virtual tour assets. |
 | `BOOKINGS` | Reservation lifecycles tracking check-in, check-out, guest count, and reservation status. |
-| `REVIEW` | Verified guest ratings, stay feedback, cleanliness scores, and host reviews. |
-| `AMENITIES` | Master catalogue of amenities (WiFi, Pool, Dedicated Workspace, Kitchen, etc.). |
+| `REVIEW` | Verified guest ratings, stay feedback, and property reviews linked to completed bookings. |
+| `AMENITIES` | Master catalogue of property-level and room-level amenities (Wi-Fi, Pool, Dedicated Workspace, Kitchenette, etc.). |
 | `PROPERTY_AMENITIES` | Junction table mapping property-wide amenities (`property_id` ➔ `properties.id`). |
 | `ROOM_AMENITIES` | Junction table mapping room-specific amenities (`room_id` ➔ `rooms.id`). |
 | `PAYMENTS` | Transaction logs, currency management, payment gateways, and settlement receipts. |
@@ -64,18 +66,19 @@
 
 ### Frontend & Client Experience
 - **Templating:** EJS (Embedded JavaScript) with `express-ejs-layouts`
-- **Design System:** Airbnb-inspired hospitality UI tokens (Plus Jakarta Sans typography, clean glassmorphic sticky navigation)
-- **Client Scripts:** Vanilla JavaScript (ES6+) for interactive UI components and client-side form validation (`signupValidate.js`, `resendOTP.js`)
+- **Design System:** Clean hospitality UI with **Inter** typography, editorial landing page, responsive sticky navigation, and stay discovery cards
+- **Client Scripts:** Vanilla JavaScript (ES6+) for mobile navigation and form validation (`navbar.js`, `signupValidate.js`, `resendOTP.js`)
 
 ### Backend Engineering
 - **Runtime:** Node.js (v20+, ES Modules)
-- **Framework:** Express.js (v5.x)
+- **Framework:** Express.js (v5.x) with `method-override` and `uuid`
 - **Validation Engine:** **Zod** schema validation + **Regex** pattern enforcement
 - **Authentication:** Passport.js (`passport-local`, `passport-google-oauth20`), `bcrypt`
 - **Session Store:** `express-session`, `connect-redis`, `ioredis`
 - **Security & Protection:** `helmet`, `express-rate-limit`, `connect-flash`
 - **Storage & CDN:** `multer`, `cloudinary`
 - **Email Engine:** `nodemailer`
+- **Seeding & Mock Data:** `@faker-js/faker`
 
 ### Data Storage & In-Memory Layer
 - **Relational DB:** MySQL 8.x (`mysql2`)
@@ -90,29 +93,32 @@ Stayora/
 ├── config/                 # Service initializations & cloud integrations
 │   ├── cloudinary.js       # Cloudinary asset storage config
 │   ├── db.js               # MySQL connection pool configuration
-│   ├── multer.js           # Multer storage configuration for uploads
+│   ├── multer.js           # Multer memory storage configuration for uploads
 │   ├── passport.js         # Local & Google OAuth authentication strategies
 │   ├── redis.js            # Redis client & cache settings
 │   └── session.js          # Express-session & RedisStore integration
 ├── routes/                 # Modular Express route handlers
-│   └── authentication.js   # Authentication (Signup, Login, OTP, OAuth, Recovery)
+│   ├── authentication.js   # Auth (Signup, Login, OTP, OAuth, Password Recovery)
+│   └── listings.js         # Stays discovery, filters, caching & host upgrade
+├── scripts/                # Utility & database scripts
+│   └── seed.js             # Seeds 2,000 properties, rooms, users & 3,000 reviews
 ├── utils/                  # Reusable utilities and validators
 │   ├── mailer.js           # Transactional email templates & nodemailer transporter
-│   └── validator.js        # Zod schemas & Regex rules for signup, login, and reset
+│   ├── reset-pass.js       # Password strength validation script
+│   └── validator.js        # Zod schemas & Regex rules for auth & recovery
 ├── public/                 # Static assets
-│   ├── css/                # Hospitality design system (navbar.css, footer.css, etc.)
-│   └── js/                 # Client-side scripts (signupValidate.js, resendOTP.js)
+│   ├── css/                # Stylesheets (navbar.css, home.css, listings.css, auth.css, footer.css)
+│   ├── images/             # Editorial homepage imagery (hero & spotlight assets)
+│   └── js/                 # Client-side scripts (navbar.js, signupValidate.js, resendOTP.js)
 ├── views/                  # EJS template views
+│   ├── auth/               # Authentication views (login, signup, enter-otp, forgot-password, reset-password)
 │   ├── layouts/            # Master layout (boilerplate.ejs)
+│   ├── listings/           # Stays catalog view (listings.ejs)
 │   ├── partials/           # Reusable components (navbar.ejs, footer.ejs)
-│   ├── enter-otp.ejs       # OTP verification view
-│   ├── forgot-password.ejs # Password recovery view
-│   ├── index.ejs           # Landing page
-│   ├── login.ejs           # Sign-in view
-│   └── signup.ejs          # Registration view
+│   └── index.ejs           # Editorial landing page
 ├── .env.example            # Example environment configuration
 ├── .gitignore              # Git ignore patterns (node_modules, .env)
-├── app.js                  # Application entry point & middleware pipeline
+├── server.js               # Application entry point & middleware pipeline
 ├── package.json
 └── README.md
 ```
@@ -147,6 +153,7 @@ Configure your credentials inside `.env`:
 ```env
 PORT=8080
 NODE_ENV=development
+APP_URL=http://localhost:8080
 SESSION_SECRET=your_super_secret_session_key
 
 # MySQL Database
@@ -174,13 +181,19 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-### 4. Run the Application
+### 4. Seed Sample Data (Optional)
+Populate your MySQL database with 2,000 properties across 24 Indian destinations, 101 users (admin, hosts, guests), 24 amenities, room tiers, and 3,000 completed bookings & reviews:
+```bash
+node scripts/seed.js
+```
+
+### 5. Run the Application
 ```bash
 # Development mode with hot-reloading
-npx nodemon app.js
+npx nodemon server.js
 
 # Production start
-node app.js
+node server.js
 ```
 Open **`http://localhost:8080`** in your browser.
 
@@ -188,20 +201,33 @@ Open **`http://localhost:8080`** in your browser.
 
 ## 🚦 Hospitality API & Route Specifications
 
+### Core Pages (`/`)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | Renders the Stayora editorial landing page (`views/index.ejs`). |
+
+### Stays Discovery & Host Onboarding (`/listings`)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/listings` | Displays paginated approved stays (12 per page) with optional `city`, `type`, `price`, `sort` (`Low to High`, `High to Low`, `Top Rated`), and `page` query params, backed by 10-minute Redis caching. |
+| `GET` | `/listings/update/host` | Protected (`isLoggedIn`) endpoint that upgrades a guest account's `ROLE` to `host`. |
+
 ### Authentication & Account Recovery (`/authenticate`)
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/authenticate/login` | Renders user sign-in portal. |
-| `POST` | `/authenticate/login/verify` | Authenticates credentials with local strategy & Redis rate-limiting. |
-| `GET` | `/authenticate/signup` | Renders guest/host registration form. |
-| `POST` | `/authenticate/signup/add` | Validates input via Zod schema & regex, sends OTP, and caches state in Redis. |
-| `POST` | `/authenticate/signup/verify-otp` | Compares OTP, creates user record in MySQL, and establishes session. |
+| `POST` | `/authenticate/login/verify` | Authenticates credentials with local strategy & Redis IP/email rate-limiting. |
+| `GET` | `/authenticate/signup` | Renders guest registration form. |
+| `POST` | `/authenticate/signup/add` | Validates input via Zod & regex, sends 6-digit OTP, and caches pending signup in Redis. |
+| `POST` | `/authenticate/signup/verify-otp` | Verifies hashed OTP, creates user record in MySQL, and establishes session. |
 | `POST` | `/authenticate/signup/resend-otp` | Resends a fresh 6-digit OTP with Redis rate-limiting (max 3 per 15 min). |
 | `GET` | `/authenticate/google` | Triggers Google OAuth 2.0 consent flow. |
 | `GET` | `/authenticate/google/callback` | OAuth callback endpoint exchanging tokens for user profile. |
-| `GET` | `/authenticate/forgot-password` | Renders password recovery form. |
-| `POST` | `/authenticate/forgot-password/submit` | *(Planned)* Form target in `forgot-password.ejs` for reset links (route pending in `authentication.js`). |
-| `GET` | `/authenticate/logout` | Terminates Passport session and purges cookies. |
+| `GET` | `/authenticate/forgot-password` | Renders password recovery request form. |
+| `POST` | `/authenticate/forgot-password/submit` | Rate-limited (IP + email); generates a SHA-256 hashed 32-byte Redis reset token (10-min TTL) and emails a reset link (with enumeration protection & OAuth account handling). |
+| `GET` | `/authenticate/forgot-password/:token` | Validates the reset token in Redis and renders the new password form. |
+| `POST` | `/authenticate/reset-password/:token` | Validates new password via Zod, updates bcrypt hash in MySQL, clears Redis keys, and sends a security alert email. |
+| `GET` | `/authenticate/logout` | Terminates Passport session and logs out the user. |
 
 ---
 
@@ -209,18 +235,23 @@ Open **`http://localhost:8080`** in your browser.
 
 - [x] Comprehensive 11-table relational database architecture with `PROPERTIES`, `ROOMS`, and foreign key cascade rules
 - [x] Redis-backed session store using `connect-redis` + `ioredis`
-- [x] Local authentication with 12-round `bcrypt` salting
+- [x] Local authentication with 12-round `bcrypt` salting & email OTP verification
 - [x] Google OAuth 2.0 integration
+- [x] End-to-end password recovery with SHA-256 hashed Redis tokens and security alert emails
 - [x] Enterprise input validation using **Zod** and strict **Regex** patterns (client + server side)
-- [x] Security hardening: `helmet` HTTP headers, Redis/Express rate limiters, and `httpOnly` cookies
+- [x] Security hardening: customized `helmet` CSP headers, Redis/Express rate limiters, and `httpOnly` cookies
 - [x] Transactional email automation using `nodemailer`
-- [x] Airbnb-inspired responsive hospitality navbar & global footer partials
-- [ ] Host listing portal: Multi-step stay creation & pricing manager
+- [x] Responsive hospitality navbar, editorial homepage & global footer partials
+- [x] Redis-cached property discovery catalog (`/listings`) with city search, multi-filter, sorting, and pagination
+- [x] Guest-to-Host role upgrade flow (`/listings/update/host`)
+- [x] Automated MySQL seeding script (`scripts/seed.js`) with 2,000 properties and 3,000 reviews across 24 destinations
+- [ ] Individual property detail view (`/listings/:id`) with room tiers, galleries, amenities & reviews
+- [ ] Host dashboard (`/listings/host/dashboard`) & multi-step stay creation / pricing manager
 - [ ] Room category inventory management with Cloudinary multi-image uploads
 - [ ] Real-time date-range availability check engine (`CHECK_IN` / `CHECK_OUT`)
 - [ ] Payment gateway integration (Stripe / Razorpay)
-- [ ] Verified guest review and rating system
-- [ ] Admin management portal and host verification workflow
+- [ ] Verified guest review and rating submission system
+- [ ] Admin management portal and host/property verification workflow
 
 ---
 
