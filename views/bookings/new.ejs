@@ -1,0 +1,136 @@
+<div class="booking-page">
+
+    <!-- Back Navigation -->
+    <div class="booking-breadcrumb">
+        <a href="/listings/<%= room.property_id %>" class="booking-back-link">&larr; Back to property</a>
+    </div>
+
+    <header class="booking-header">
+        <span class="booking-eyebrow">Reserve Your Stay</span>
+        <h1 class="booking-title">Confirm and book</h1>
+    </header>
+
+    <!-- Mobile-First Grid Form:
+         Mobile order: 1) Trip details -> 2) Price details -> 3) Confirm Booking
+         Desktop order: Left (Trip details + Confirm Booking) | Right (Sticky Price details) -->
+    <form action="/bookings/new/<%= room.ID %>" method="POST" class="booking-grid" id="bookingForm">
+
+        <!-- 1. Trip Details Card -->
+        <section class="booking-form-card">
+            <h2 class="booking-card-heading">Trip details</h2>
+
+            <div class="booking-form-fields">
+                <div class="booking-dates-row">
+                    <div class="booking-field">
+                        <label for="checkIn">Check-in Date</label>
+                        <input
+                            type="date"
+                            id="checkIn"
+                            name="checkIn"
+                            min="<%= today %>"
+                            required
+                        >
+                    </div>
+
+                    <div class="booking-field">
+                        <label for="checkOut">Check-out Date</label>
+                        <input
+                            type="date"
+                            id="checkOut"
+                            name="checkOut"
+                            min="<%= today %>"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="booking-field">
+                    <label for="guests">Number of Guests</label>
+                    <select id="guests" name="guests" required>
+                        <% for (let g = 1; g <= room.CAPACITY; g++) { %>
+                            <% if (g === 1) { %>
+                                <option value="<%= g %>">1 Guest</option>
+                            <% } else { %>
+                                <option value="<%= g %>"><%= g %> Guests</option>
+                            <% } %>
+                        <% } %>
+                    </select>
+                    <span class="booking-field-hint">Maximum <%= room.CAPACITY %> guests allowed in this room.</span>
+                </div>
+
+                <!-- Stay Policies Box -->
+                <div class="booking-policies-box">
+                    <h3 class="policies-heading">Good to know</h3>
+                    <div class="policies-list">
+                        <div class="policy-row">
+                            <span class="policy-key">Check-in time</span>
+                            <span class="policy-val"><%= room.check_in_time %></span>
+                        </div>
+                        <div class="policy-row">
+                            <span class="policy-key">Check-out time</span>
+                            <span class="policy-val"><%= room.check_out_time %></span>
+                        </div>
+                        <div class="policy-row">
+                            <span class="policy-key">Cancellation policy</span>
+                            <span class="policy-val"><%= room.cancellation_policy %></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Price Details & Room Summary Card (Appears BEFORE Confirm Booking on mobile) -->
+        <aside class="booking-summary-col">
+            <div class="booking-summary-card" id="priceSummary" data-price="<%= room.PRICE_PER_NIGHT %>">
+
+                <div class="summary-room-header">
+                    <img src="<%= roomImage %>" alt="<%= room.ROOM_TYPE %>" class="summary-room-img">
+                    <div class="summary-room-info">
+                        <span class="summary-prop-name"><%= room.property_title %></span>
+                        <h2 class="summary-room-name"><%= room.ROOM_TYPE %></h2>
+                        <p class="summary-room-loc"><%= room.property_location %>, <%= room.property_state %></p>
+                    </div>
+                </div>
+
+                <div class="summary-divider"></div>
+
+                <h3 class="summary-section-title">Price details</h3>
+
+                <div class="price-breakdown">
+                    <div class="price-row">
+                        <span>&#8377;<%= room.PRICE_PER_NIGHT %> &times; <span id="nightsCount">0</span> night(s)</span>
+                        <span id="subtotalText">&#8377;0</span>
+                    </div>
+                    <div class="price-row price-row-muted">
+                        <span>Stayora service fee</span>
+                        <span>&#8377;0</span>
+                    </div>
+                </div>
+
+                <div class="summary-divider"></div>
+
+                <div class="price-total-row">
+                    <span>Total (INR)</span>
+                    <span id="totalPriceText">Select dates</span>
+                </div>
+
+                <p class="summary-availability-note">
+                    Real-time room availability is verified securely when you confirm.
+                </p>
+
+            </div>
+        </aside>
+
+        <!-- 3. Confirm Booking Action (Always last on mobile, neatly below details on desktop) -->
+        <div class="booking-confirm-box">
+            <button type="submit" class="booking-submit-btn">Confirm Booking</button>
+            <p class="booking-terms-note">
+                By confirming, you agree to Stayora's <a href="/terms">Terms &amp; Conditions</a> and the property's cancellation policy.
+            </p>
+        </div>
+
+    </form>
+
+</div>
+
+<script src="/js/bookingPrice.js" defer></script>
