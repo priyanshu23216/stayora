@@ -1,0 +1,62 @@
+<div class="categories-page">
+
+    <!-- Page Header -->
+    <header class="info-hero">
+        <span class="info-eyebrow">Explore Stays</span>
+        <h1 class="info-title">Browse by Category</h1>
+        <p class="info-subtitle">
+            Find the exact kind of stay you are looking for - from luxury private villas and beach resorts to boutique hotels and cozy guesthouses.
+        </p>
+
+        <!-- Quick Category Jump Links -->
+        <nav class="category-pills" aria-label="Jump to category">
+            <% for (let category of categories) { %>
+                <a href="#cat-<%= category.type %>" class="category-pill"><%= category.heading %></a>
+            <% } %>
+        </nav>
+    </header>
+
+    <!-- Category-Wise Sections -->
+    <% for (let category of categories) { %>
+        <section class="category-section" id="cat-<%= category.type %>">
+
+            <div class="category-section-head">
+                <div>
+                    <h2 class="category-heading"><%= category.heading %></h2>
+                    <p class="category-desc"><%= category.description %></p>
+                </div>
+
+                <a
+                    href="/listings?type=<%= category.type %>&price=Any+Price&sort=Low+to+High"
+                    class="category-view-all"
+                >
+                    View all <%= category.heading %> &rarr;
+                </a>
+            </div>
+
+            <% if (category.properties.length === 0) { %>
+                <p class="empty-muted">No properties available in this category right now.</p>
+            <% } else { %>
+                <div class="category-cards-grid">
+                    <% for (let item of category.properties) { %>
+                        <article class="listing-card">
+                            <div class="listing-img-box">
+                                <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img">
+                                <span class="listing-type"><%= item.PROPERTY_TYPE %></span>
+                            </div>
+
+                            <div class="listing-info">
+                                <h3 class="listing-title"><%= item.title %></h3>
+                                <p class="listing-location"><%= item.city %>, <%= item.state %></p>
+                                <p class="listing-price">From &#8377;<%= item.price_per_night %> <span>/ night</span></p>
+                                <a href="/listings/<%= item.ID %>" class="view-more-btn">View More</a>
+                            </div>
+                        </article>
+                    <% } %>
+                </div>
+            <% } %>
+
+        </section>
+    <% } %>
+
+</div>

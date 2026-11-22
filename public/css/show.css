@@ -11,8 +11,9 @@ html {
     max-width: 1140px;
     margin: 0 auto;
     padding: 24px 16px 72px;
-    font-family: var(--apple-font-text, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
-    color: #1d1d1f;
+    font-family: var(--apple-font-text);
+    color: var(--apple-on-surface);
+    -webkit-font-smoothing: antialiased;
 }
 
 /* 1. Breadcrumb */
@@ -26,13 +27,14 @@ html {
     gap: 6px;
     font-size: 14px;
     font-weight: 500;
-    color: #6e6e73;
+    letter-spacing: -0.01em;
+    color: var(--apple-primary);
     text-decoration: none;
-    transition: color 0.18s ease;
+    transition: opacity 0.18s ease;
 }
 
 .back-link:hover {
-    color: #1d1d1f;
+    opacity: 0.78;
 }
 
 /* 2. Header */
@@ -49,11 +51,12 @@ html {
 }
 
 .show-title {
-    font-size: clamp(24px, 3.2vw, 34px);
+    font-family: var(--apple-font-display);
+    font-size: clamp(26px, 3.4vw, 38px);
     font-weight: 700;
-    letter-spacing: -0.025em;
-    line-height: 1.18;
-    color: #1d1d1f;
+    letter-spacing: -0.028em;
+    line-height: 1.12;
+    color: var(--apple-on-surface);
     margin: 0;
 }
 
@@ -239,10 +242,11 @@ html {
 }
 
 .section-heading {
-    font-size: 21px;
-    font-weight: 650;
-    letter-spacing: -0.015em;
-    color: #1d1d1f;
+    font-family: var(--apple-font-display);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    color: var(--apple-on-surface);
     margin: 0 0 16px;
 }
 
@@ -562,9 +566,11 @@ html {
 }
 
 .room-title {
-    font-size: 19px;
-    font-weight: 650;
-    color: #1d1d1f;
+    font-family: var(--apple-font-display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    color: var(--apple-on-surface);
     margin: 0 0 4px;
 }
 
