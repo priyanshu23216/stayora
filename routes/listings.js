@@ -266,11 +266,172 @@ lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
 
 // to view a particular listed property , always write dynamic routes at last after static routes to avoid conflicts
 lists.get('/:id' , async(req , res , next )=>{
+    try {
+        const propertyId = req.params.id;
+        const cacheKey = `property:${propertyId}`;
+
+        // Step 1: Check if this property's data is already saved in Redis cache
+        const cachedData = await redis.get(cacheKey);
+
+        if (cachedData) {
+            const parsedData = JSON.parse(cachedData);
+
+            return res.render('listings/show', {
+                title: parsedData.property.title,
+                property: parsedData.property,
+                host: parsedData.host,
+                propertyImages: parsedData.propertyImages,
+                propertyAmenities: parsedData.propertyAmenities,
+                rooms: parsedData.rooms,
+                reviews: parsedData.reviews,
+                avgRating: parsedData.avgRating
+            });
+        }
+
+        // Step 2: Fetch property details from MySQL
+        const propertyResult = await db.execute(
+            `SELECT * FROM properties WHERE ID = ? AND verification_status = 'approved'`,
+            [propertyId]
+        );
+        const propertyRows = propertyResult[0];
+
+        if (propertyRows.length === 0) {
+            req.flash("error", "Property not found.");
+            return res.redirect("/listings");
+        }
+
+        const property = propertyRows[0];
+
+        // Step 3: Fetch host details using property.HOST_ID
+        const hostResult = await db.execute(
+            `SELECT NAME, avatar_url, is_host_verified FROM users WHERE ID = ?`,
+            [property.HOST_ID]
+        );
+        const hostRows = hostResult[0];
+        let host = null;
+        if (hostRows.length > 0) {
+            host = hostRows[0];
+        } else {
+            host = { NAME: "Stayora Host", avatar_url: null, is_host_verified: 0 };
+        }
+
+        // Step 4: Fetch all gallery images of this property
+        const propertyImagesResult = await db.execute(
+            `SELECT IMAGE_URL FROM property_images WHERE property_id = ?`,
+            [propertyId]
+        );
+        const propertyImages = propertyImagesResult[0];
+
+        // Step 5: Fetch all amenities of this property
+        const propertyAmenitiesResult = await db.execute(
+            `SELECT amenities.NAME
+             FROM property_amenities
+             JOIN amenities ON property_amenities.AMENITY_ID = amenities.ID
+             WHERE property_amenities.property_id = ?`,
+            [propertyId]
+        );
+        const propertyAmenities = propertyAmenitiesResult[0];
+
+        // Step 6: Fetch all rooms of this property (sorted from lowest to highest price)
+        const roomsResult = await db.execute(
+            `SELECT * FROM rooms WHERE property_id = ? ORDER BY PRICE_PER_NIGHT ASC`,
+            [propertyId]
+        );
+        const rooms = roomsResult[0];
+
+        // Step 7: Fetch all images of rooms belonging to this property
+        const roomImagesResult = await db.execute(
+            `SELECT room_images.ROOM_ID, room_images.IMAGE_URL
+             FROM room_images
+             JOIN rooms ON room_images.ROOM_ID = rooms.ID
+             WHERE rooms.property_id = ?`,
+            [propertyId]
+        );
+        const roomImages = roomImagesResult[0];
+
+        // Step 8: Fetch all amenities of rooms belonging to this property
+        const roomAmenitiesResult = await db.execute(
+            `SELECT room_amenities.ROOM_ID, amenities.NAME
+             FROM room_amenities
+             JOIN amenities ON room_amenities.AMENITY_ID = amenities.ID
+             JOIN rooms ON room_amenities.ROOM_ID = rooms.ID
+             WHERE rooms.property_id = ?`,
+            [propertyId]
+        );
+        const roomAmenities = roomAmenitiesResult[0];
+
+        // Step 9: Attach each room's images and amenities inside that room object
+        for (let room of rooms) {
+            room.images = [];
+            room.amenities = [];
+
+            for (let imageItem of roomImages) {
+                if (imageItem.ROOM_ID === room.ID) {
+                    room.images.push(imageItem);
+                }
+            }
+
+            for (let amenityItem of roomAmenities) {
+                if (amenityItem.ROOM_ID === room.ID) {
+                    room.amenities.push(amenityItem);
+                }
+            }
+        }
+
+        // Step 10: Fetch all reviews and reviewer details for this property
+        const reviewsResult = await db.execute(
+            `SELECT review.ID, review.RATING, review.COMMENT, users.NAME AS reviewer_name, users.avatar_url AS reviewer_avatar
+             FROM review
+             JOIN users ON review.USER_ID = users.ID
+             WHERE review.property_id = ?`,
+            [propertyId]
+        );
+        const reviews = reviewsResult[0];
+
+        // Step 11: Calculate average rating from all reviews
+        let totalRating = 0;
+        for (let reviewItem of reviews) {
+            totalRating = totalRating + reviewItem.RATING;
+        }
+
+        let avgRating = 0;
+        if (reviews.length > 0) {
+            avgRating = (totalRating / reviews.length).toFixed(1);
+        } else {
+            avgRating = 0;
+        }
+
+        // Step 12: Save all fetched data in Redis cache for 10 minutes (600 seconds)
+        const dataToCache = {
+            property: property,
+            host: host,
+            propertyImages: propertyImages,
+            propertyAmenities: propertyAmenities,
+            rooms: rooms,
+            reviews: reviews,
+            avgRating: avgRating
+        };
+        await redis.set(cacheKey, JSON.stringify(dataToCache), "EX", 600);
+
+        // Step 13: Render the single property detail page
+        return res.render('listings/show', {
+            title: property.title,
+            property: property,
+            host: host,
+            propertyImages: propertyImages,
+            propertyAmenities: propertyAmenities,
+            rooms: rooms,
+            reviews: reviews,
+            avgRating: avgRating
+        });
+    } catch (err) {
+        return next(err);
+    }
 });
 
 //error handling middleware for any unexpected errors in lists route
 lists.use(( err , req , res , next)=>{
-    req.flash("error" ,"Some unexpected error occured .Please Try Again!");
+    req.flash("error" ,"Some unexpected error occured,Please Try Again!");
     return res.redirect('/');
 });
 
