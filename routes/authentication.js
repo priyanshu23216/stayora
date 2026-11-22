@@ -382,7 +382,8 @@ router.get('/logout', (req, res, next) => {
 
 // error handling middleware for any unexpected errors for auth routes
 router.use( ( err , req , res , next )=>{
-    res.send("some unexpected error occured , Please Try Again!");
+    req.flash("error" , "some unexpected error occured , Please Try Again!");
+    res.redirect('/');
 });
 
 export default router;
