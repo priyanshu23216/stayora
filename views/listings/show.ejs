@@ -1,0 +1,321 @@
+<div class="show-page">
+
+    <!-- 1. Back Navigation -->
+    <div class="show-breadcrumb">
+        <a href="/listings" class="back-link">&larr; Back to all stays</a>
+    </div>
+
+    <!-- 2. Property Header (Title, Rating, Location, Type) -->
+    <header class="show-header">
+        <div class="show-title-row">
+            <h1 class="show-title"><%= property.title %></h1>
+            <span class="show-type-badge"><%= property.PROPERTY_TYPE %></span>
+        </div>
+
+        <div class="show-meta-row">
+            <span class="show-rating-summary">
+                <span class="star-filled">&#9733;</span>
+                <% if (reviews.length > 0) { %>
+                    <strong><%= avgRating %></strong>
+                    <span class="meta-muted">(<%= reviews.length %> reviews)</span>
+                <% } else { %>
+                    <strong>New</strong>
+                    <span class="meta-muted">(No reviews yet)</span>
+                <% } %>
+            </span>
+
+            <span class="meta-dot">&middot;</span>
+            <span class="show-location-text"><%= property.location %>, <%= property.state %></span>
+        </div>
+    </header>
+
+    <!-- 3. Airbnb-Style Photo Gallery -->
+    <section class="show-gallery" aria-label="Property photos">
+        <div class="gallery-main">
+            <img src="<%= property.image %>" alt="<%= property.title %>" class="gallery-img">
+        </div>
+
+        <% if (propertyImages.length > 0) { %>
+            <div class="gallery-side">
+                <% for (let i = 0; i < propertyImages.length && i < 4; i++) { %>
+                    <div class="gallery-side-item">
+                        <img src="<%= propertyImages[i].IMAGE_URL %>" alt="<%= property.title %> photo <%= i + 1 %>" class="gallery-img">
+                    </div>
+                <% } %>
+            </div>
+        <% } %>
+    </section>
+
+    <!-- 4. Main Content (Left Details + Right Sticky Booking Summary) -->
+    <div class="show-main-grid">
+
+        <!-- Left Column -->
+        <div class="show-details-col">
+
+            <!-- Host Bar -->
+            <section class="show-host-bar">
+                <div class="host-info-left">
+                    <% if (host.avatar_url) { %>
+                        <img src="<%= host.avatar_url %>" alt="<%= host.NAME %>" class="host-avatar-img">
+                    <% } else { %>
+                        <div class="host-avatar-fallback"><%= host.NAME.charAt(0).toUpperCase() %></div>
+                    <% } %>
+
+                    <div class="host-text">
+                        <div class="host-name-row">
+                            <h2 class="host-heading">Hosted by <%= host.NAME %></h2>
+                            <% if (host.is_host_verified === 1) { %>
+                                <span class="verified-badge">&#10003; Verified Host</span>
+                            <% } %>
+                        </div>
+                        <p class="host-submeta">
+                            <%= property.max_guests %> max guests &middot;
+                            <%= property.total_rooms %> total rooms &middot;
+                            <%= property.BATHROOMS %> bathrooms
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- About This Stay -->
+            <section class="show-section">
+                <h2 class="section-heading">About this place</h2>
+                <p class="show-description"><%= property.description %></p>
+            </section>
+
+            <!-- Property Amenities -->
+            <section class="show-section">
+                <h2 class="section-heading">What this place offers</h2>
+
+                <% if (propertyAmenities.length > 0) { %>
+                    <ul class="amenities-grid">
+                        <% for (let amenityItem of propertyAmenities) { %>
+                            <li class="amenity-item">
+                                <span class="amenity-check">&#10003;</span>
+                                <span><%= amenityItem.NAME %></span>
+                            </li>
+                        <% } %>
+                    </ul>
+                <% } else { %>
+                    <p class="empty-muted">No property amenities listed yet.</p>
+                <% } %>
+            </section>
+
+            <!-- Stay Policies -->
+            <section class="show-section">
+                <h2 class="section-heading">Things to know</h2>
+                <div class="policies-grid">
+                    <div class="policy-card">
+                        <span class="policy-label">Check-in</span>
+                        <span class="policy-value"><%= property.check_in_time %></span>
+                    </div>
+                    <div class="policy-card">
+                        <span class="policy-label">Check-out</span>
+                        <span class="policy-value"><%= property.check_out_time %></span>
+                    </div>
+                    <div class="policy-card">
+                        <span class="policy-label">Cancellation</span>
+                        <span class="policy-value"><%= property.cancellation_policy %></span>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Right Column: Sticky Summary Card -->
+        <aside class="show-sidebar-col">
+            <div class="booking-summary-card">
+                <div class="summary-price-row">
+                    <div>
+                        <span class="summary-from">Starting from</span>
+                        <div class="summary-price">
+                            &#8377;<%= property.price_per_night %>
+                            <span class="summary-night">/ night</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-rating-pill">
+                        <span class="star-filled">&#9733;</span>
+                        <% if (reviews.length > 0) { %>
+                            <span><%= avgRating %></span>
+                        <% } else { %>
+                            <span>New</span>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Availability Badge -->
+                <div class="summary-status-row">
+                    <% if (property.AVAILABILITY_STATUS === 'available') { %>
+                        <span class="status-badge status-available">
+                            <span class="status-dot"></span> Available to book
+                        </span>
+                    <% } else if (property.AVAILABILITY_STATUS === 'reserved') { %>
+                        <span class="status-badge status-reserved">
+                            <span class="status-dot"></span> Currently reserved
+                        </span>
+                    <% } else { %>
+                        <span class="status-badge status-unavailable">
+                            <span class="status-dot"></span> Currently unavailable
+                        </span>
+                    <% } %>
+                </div>
+
+                <div class="summary-facts">
+                    <div class="summary-fact-item">
+                        <span class="fact-label">City</span>
+                        <span class="fact-val"><%= property.city %>, <%= property.state %></span>
+                    </div>
+                    <div class="summary-fact-item">
+                        <span class="fact-label">Max Guests</span>
+                        <span class="fact-val">Up to <%= property.max_guests %> guests</span>
+                    </div>
+                    <div class="summary-fact-item">
+                        <span class="fact-label">Room Options</span>
+                        <span class="fact-val"><%= rooms.length %> categories</span>
+                    </div>
+                </div>
+
+                <a href="#rooms-section" class="summary-cta-btn">Choose a Room</a>
+                <p class="summary-note">Select a room below to view exact pricing and book.</p>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- 5. Available Rooms Section -->
+    <section class="show-section rooms-section" id="rooms-section">
+        <div class="section-header-row">
+            <h2 class="section-heading">Choose your room</h2>
+            <span class="section-count"><%= rooms.length %> room types available</span>
+        </div>
+
+        <% if (rooms.length === 0) { %>
+            <p class="empty-muted">No rooms have been added for this property yet.</p>
+        <% } else { %>
+            <div class="rooms-list">
+                <% for (let room of rooms) { %>
+                    <article class="room-card">
+
+                        <!-- Room Images -->
+                        <div class="room-media">
+                            <% if (room.images.length > 0) { %>
+                                <img src="<%= room.images[0].IMAGE_URL %>" alt="<%= room.ROOM_TYPE %>" class="room-main-img">
+
+                                <% if (room.images.length > 1) { %>
+                                    <div class="room-thumbs">
+                                        <% for (let k = 1; k < room.images.length; k++) { %>
+                                            <img src="<%= room.images[k].IMAGE_URL %>" alt="<%= room.ROOM_TYPE %> extra photo" class="room-thumb-img">
+                                        <% } %>
+                                    </div>
+                                <% } %>
+                            <% } else { %>
+                                <img src="<%= property.image %>" alt="<%= room.ROOM_TYPE %>" class="room-main-img">
+                            <% } %>
+                        </div>
+
+                        <!-- Room Info -->
+                        <div class="room-content">
+                            <div class="room-top">
+                                <div>
+                                    <h3 class="room-title"><%= room.ROOM_TYPE %></h3>
+                                    <p class="room-meta">
+                                        Up to <strong><%= room.CAPACITY %> guests</strong>
+                                        &middot;
+                                        <strong><%= room.TOTAL_ROOMS %></strong> rooms available
+                                    </p>
+                                </div>
+
+                                <div class="room-price-box">
+                                    <span class="room-price">&#8377;<%= room.PRICE_PER_NIGHT %></span>
+                                    <span class="room-per-night">per night</span>
+                                </div>
+                            </div>
+
+                            <p class="room-description"><%= room.DESCRIPTION %></p>
+
+                            <% if (room.amenities.length > 0) { %>
+                                <div class="room-amenities">
+                                    <% for (let roomAmenity of room.amenities) { %>
+                                        <span class="room-amenity-chip"><%= roomAmenity.NAME %></span>
+                                    <% } %>
+                                </div>
+                            <% } %>
+
+                            <div class="room-actions">
+                                <% if (property.AVAILABILITY_STATUS === 'available' && room.TOTAL_ROOMS > 0) { %>
+                                    <a href="/bookings/new/<%= room.ID %>" class="room-book-btn">Book This Room</a>
+                                <% } else { %>
+                                    <span class="room-book-btn room-book-disabled">Not Available</span>
+                                <% } %>
+                            </div>
+                        </div>
+
+                    </article>
+                <% } %>
+            </div>
+        <% } %>
+    </section>
+
+    <!-- 6. Location Section -->
+    <section class="show-section">
+        <h2 class="section-heading">Where you'll be</h2>
+        <div class="location-card">
+            <p class="location-main"><%= property.location %></p>
+            <p class="location-sub"><%= property.city %>, <%= property.state %> - <%= property.pincode %></p>
+        </div>
+    </section>
+
+    <!-- 7. Reviews & Ratings Section -->
+    <section class="show-section reviews-section" id="reviews-section">
+        <div class="reviews-header">
+            <h2 class="section-heading reviews-big-score">
+                <span class="star-filled">&#9733;</span>
+                <% if (reviews.length > 0) { %>
+                    <%= avgRating %> &middot; <%= reviews.length %> Reviews
+                <% } else { %>
+                    No Reviews Yet
+                <% } %>
+            </h2>
+        </div>
+
+        <% if (reviews.length === 0) { %>
+            <p class="empty-muted">Be the first guest to review this stay after your visit.</p>
+        <% } else { %>
+            <div class="reviews-grid">
+                <% for (let reviewItem of reviews) { %>
+                    <article class="review-card">
+                        <div class="review-user-row">
+                            <% if (reviewItem.reviewer_avatar) { %>
+                                <img src="<%= reviewItem.reviewer_avatar %>" alt="<%= reviewItem.reviewer_name %>" class="reviewer-avatar-img">
+                            <% } else { %>
+                                <div class="reviewer-avatar-fallback">
+                                    <%= reviewItem.reviewer_name.charAt(0).toUpperCase() %>
+                                </div>
+                            <% } %>
+
+                            <div class="reviewer-meta">
+                                <h3 class="reviewer-name"><%= reviewItem.reviewer_name %></h3>
+
+                                <!-- Star Rating Display (1 to 5 stars) -->
+                                <div class="review-stars" aria-label="Rated <%= reviewItem.RATING %> out of 5">
+                                    <% for (let s = 1; s <= 5; s++) { %>
+                                        <% if (s <= reviewItem.RATING) { %>
+                                            <span class="star-filled">&#9733;</span>
+                                        <% } else { %>
+                                            <span class="star-empty">&#9734;</span>
+                                        <% } %>
+                                    <% } %>
+                                    <span class="review-rating-num"><%= reviewItem.RATING %>.0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="review-comment"><%= reviewItem.COMMENT %></p>
+                    </article>
+                <% } %>
+            </div>
+        <% } %>
+    </section>
+
+</div>

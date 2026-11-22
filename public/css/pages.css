@@ -1,0 +1,374 @@
+/* ==========================================================================
+   Stayora Info & Legal Pages (pages.css) — Clean Apple-Like Minimal UI
+   ========================================================================== */
+
+.info-page {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 20px 88px;
+    font-family: var(--apple-font-text, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+    color: #1d1d1f;
+}
+
+/* Hero Header */
+.info-hero {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 48px;
+}
+
+.info-eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6e6e73;
+    background-color: #f5f5f7;
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+}
+
+.info-title {
+    font-size: clamp(30px, 4.5vw, 46px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    color: #1d1d1f;
+    margin: 0 0 16px;
+}
+
+.info-subtitle {
+    font-size: 17px;
+    line-height: 1.6;
+    color: #6e6e73;
+    margin: 0;
+}
+
+/* Surface Cards */
+.info-card {
+    background-color: #f5f5f7;
+    border-radius: 22px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.info-card-white {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 22px;
+    padding: 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.info-section-title {
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: #1d1d1f;
+    margin: 0 0 12px;
+}
+
+.info-text {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: #424245;
+    margin: 0 0 14px;
+}
+
+.info-text:last-child {
+    margin-bottom: 0;
+}
+
+/* Grids */
+.info-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-bottom: 32px;
+}
+
+.info-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin-bottom: 32px;
+}
+
+.feature-tile {
+    background-color: #f5f5f7;
+    border-radius: 20px;
+    padding: 26px;
+}
+
+.feature-tile h3 {
+    font-size: 17px;
+    font-weight: 650;
+    color: #1d1d1f;
+    margin: 0 0 8px;
+}
+
+.feature-tile p {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #6e6e73;
+    margin: 0;
+}
+
+/* Founder Card (About Page) */
+.founder-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+    background-color: #1d1d1f;
+    color: #ffffff;
+    border-radius: 24px;
+    padding: 36px;
+    margin-top: 12px;
+}
+
+.founder-avatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+}
+
+.founder-role {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #a1a1a6;
+    margin-bottom: 6px;
+}
+
+.founder-name {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin: 0 0 12px;
+}
+
+.founder-quote {
+    font-size: 15.5px;
+    line-height: 1.7;
+    color: #d2d2d7;
+    margin: 0;
+}
+
+/* Contact Page */
+.contact-tile {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.contact-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
+}
+
+.contact-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #86868b;
+    margin-bottom: 8px;
+}
+
+.contact-value {
+    display: inline-block;
+    font-size: 20px;
+    font-weight: 650;
+    color: #1d1d1f;
+    text-decoration: none;
+    margin-bottom: 8px;
+    word-break: break-word;
+}
+
+.contact-value:hover {
+    text-decoration: underline;
+}
+
+.contact-note {
+    font-size: 14px;
+    color: #6e6e73;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Help Centre FAQ Accordion */
+.faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.faq-item {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    padding: 18px 22px;
+    transition: border-color 0.2s ease;
+}
+
+.faq-item[open] {
+    border-color: rgba(0, 0, 0, 0.18);
+}
+
+.faq-item summary {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.faq-item summary::after {
+    content: "+";
+    font-size: 20px;
+    font-weight: 400;
+    color: #6e6e73;
+    flex-shrink: 0;
+}
+
+.faq-item[open] summary::after {
+    content: "−";
+    color: #1d1d1f;
+}
+
+.faq-answer {
+    margin: 12px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #424245;
+}
+
+/* Legal Document Styling */
+.legal-meta {
+    font-size: 13px;
+    color: #86868b;
+    margin-top: 10px;
+}
+
+.legal-section {
+    padding: 24px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.legal-section:last-child {
+    border-bottom: none;
+}
+
+.legal-section h2 {
+    font-size: 19px;
+    font-weight: 650;
+    color: #1d1d1f;
+    margin: 0 0 10px;
+}
+
+.legal-section p,
+.legal-section li {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #424245;
+}
+
+.legal-section ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.legal-section li {
+    margin-bottom: 6px;
+}
+
+/* Primary Pill Button */
+.info-btn {
+    display: inline-block;
+    background-color: #1d1d1f;
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.info-btn:hover {
+    background-color: #000000;
+    transform: translateY(-1px);
+}
+
+.info-cta-bar {
+    text-align: center;
+    background-color: #f5f5f7;
+    border-radius: 22px;
+    padding: 32px 24px;
+    margin-top: 36px;
+}
+
+.info-cta-bar h2 {
+    font-size: 20px;
+    font-weight: 650;
+    margin: 0 0 8px;
+}
+
+.info-cta-bar p {
+    font-size: 14.5px;
+    color: #6e6e73;
+    margin: 0 0 18px;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    .info-page {
+        padding: 64px 24px 104px;
+    }
+
+    .info-grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .info-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .founder-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 28px;
+        padding: 40px;
+    }
+}

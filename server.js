@@ -16,6 +16,8 @@ import lists from "./routes/listings.js";
 import hostRoutes from "./routes/host.js";
 import guestRoutes from "./routes/guest.js";
 import adminRoutes from "./routes/admin.js";
+import bookingRoutes from "./routes/booking.js";
+import pageRoutes from "./routes/pages.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -60,6 +62,8 @@ app.use('/listings', lists);
 app.use('/host', hostRoutes);
 app.use('/guest', guestRoutes);
 app.use('/admin', adminRoutes);
+app.use('/bookings', bookingRoutes);
+app.use('/', pageRoutes);
 
 app.get("/", (req, res) => { // root( home ) route
     res.render("index", { title: "Home" });
