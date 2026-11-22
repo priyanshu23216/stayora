@@ -264,15 +264,17 @@ lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
     };
 });
 
+// to view a particular listed property , always write dynamic routes at last after static routes to avoid conflicts
+lists.get('/:id' , async(req , res , next )=>{
+});
+
 //error handling middleware for any unexpected errors in lists route
 lists.use(( err , req , res , next)=>{
     req.flash("error" ,"Some unexpected error occured .Please Try Again!");
     return res.redirect('/');
 });
 
-// to view a particular listed property , always write dynamic routes at last after static routes to avoid conflicts
-lists.get('/:id' , async(req , res , next )=>{
-});
+
 
 
 export default lists;
