@@ -271,4 +271,8 @@ lists.use(( err , req , res , next)=>{
 });
 
 
+lists.get('/:id' , async(req , res , next )=>{
+});
+
+
 export default lists;
