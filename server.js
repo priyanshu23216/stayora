@@ -61,7 +61,7 @@ app.use('/host', hostRoutes);
 app.use('/guest', guestRoutes);
 app.use('/admin', adminRoutes);
 
-app.get("/", (req, res) => {
+app.get("/", (req, res) => { // root( home ) route
     res.render("index", { title: "Home" });
 });
 
