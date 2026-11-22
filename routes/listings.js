@@ -270,7 +270,7 @@ lists.use(( err , req , res , next)=>{
     return res.redirect('/');
 });
 
-
+// to view a particular listed property , always write dynamic routes at last after static routes to avoid conflicts
 lists.get('/:id' , async(req , res , next )=>{
 });
 
