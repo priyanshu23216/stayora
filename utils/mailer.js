@@ -149,8 +149,35 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkOut}</td>
                                         </tr>
                                         <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Guests</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.guests}</td>
+                                        </tr>
+                                        <tr>
                                             <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Total Paid</td>
                                             <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #ff385c;" align="right">₹${booking.totalPrice}</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Host Contact Details (Email for now; phone can be added later) -->
+                            <tr>
+                                <td style="padding: 0 35px 25px;">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f5f5f7; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
+                                        <tr>
+                                            <td colspan="2" style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 13px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.04em;">
+                                                Host Contact Details
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Host Name</td>
+                                            <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.hostName}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 12px 18px; font-size: 14px; color: #6b7280;">Host Email</td>
+                                            <td style="padding: 12px 18px; font-size: 14px; font-weight: 600;" align="right">
+                                                <a href="mailto:${booking.hostEmail}" style="color: #0071e3; text-decoration: none;">${booking.hostEmail}</a>
+                                            </td>
                                         </tr>
                                     </table>
                                 </td>

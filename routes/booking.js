@@ -2,6 +2,7 @@ import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import db from "../config/db.js";
 import { isLoggedIn } from "../middlewares/auth.js";
+import { sendBookingConfirmation } from "../utils/mailer.js";
 
 const bookingRouter = express.Router();
 
@@ -141,6 +142,7 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
         // Step 4: Fetch room + property and LOCK this room row (FOR UPDATE)
         const roomResult = await connection.execute(
             `SELECT rooms.*,
+                    properties.title AS property_title,
                     properties.AVAILABILITY_STATUS,
                     properties.verification_status,
                     properties.HOST_ID
@@ -214,7 +216,31 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
         // Step 9: Commit transaction (saves booking permanently and releases row lock)
         await connection.commit();
 
-        req.flash("success", `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}.`);
+        // Step 10: Fetch host details and send booking confirmation email to the guest
+        try {
+            const hostResult = await db.execute(
+                `SELECT NAME, EMAIL FROM users WHERE ID = ?`,
+                [room.HOST_ID]
+            );
+            const host = hostResult[0][0];
+
+            await sendBookingConfirmation(req.user.EMAIL, {
+                bookingId: bookingId,
+                hotelName: room.property_title,
+                roomType: room.ROOM_TYPE,
+                checkIn: checkIn,
+                checkOut: checkOut,
+                guests: guests,
+                totalPrice: totalAmount,
+                hostName: host.NAME,
+                hostEmail: host.EMAIL,
+            });
+        } catch (emailErr) {
+            // Do not fail the already-committed booking if email delivery fails
+            console.error("Booking confirmation email error:", emailErr);
+        }
+
+        req.flash("success", `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`);
         return res.redirect(`/listings/${room.property_id}`);
     } catch (err) {
         // Undo changes and release lock if any unexpected error occurs

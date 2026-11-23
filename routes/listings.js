@@ -436,6 +436,7 @@ lists.get('/:id' , async(req , res , next )=>{
 
 //error handling middleware for any unexpected errors in lists route
 lists.use(( err , req , res , next)=>{
+    console.error("Listings route error:", err);
     req.flash("error" ,"Some unexpected error occured,Please Try Again!");
     return res.redirect('/');
 });
