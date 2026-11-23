@@ -25,8 +25,11 @@
             <form
                 action="/host/listings/<%= property.ID %>?_method=DELETE"
                 method="POST"
-                class="host-delete-form"
+                class="host-delete-form js-delete-confirm-form"
                 id="deletePropertyForm"
+                data-delete-title="Delete &ldquo;<%= property.title %>&rdquo;?"
+                data-delete-message="This will permanently delete this property, all of its photos, and every room listed under it. This action cannot be undone."
+                data-confirm-label="Delete Property"
             >
                 <button type="submit" class="host-delete-btn">Delete Property</button>
             </form>
@@ -150,7 +153,10 @@
                                     <form
                                         action="/host/listings/<%= property.ID %>/rooms/<%= room.ID %>?_method=DELETE"
                                         method="POST"
-                                        class="host-delete-form js-delete-room-form"
+                                        class="host-delete-form js-delete-confirm-form"
+                                        data-delete-title="Delete &ldquo;<%= room.ROOM_TYPE %>&rdquo;?"
+                                        data-delete-message="This will permanently remove this room type and its photos from <%= property.title %>. This action cannot be undone."
+                                        data-confirm-label="Delete Room"
                                     >
                                         <button type="submit" class="host-room-delete-btn">Delete</button>
                                     </form>
@@ -181,5 +187,36 @@
         <% } %>
     </section>
 </section>
+
+<!-- Apple-like Confirmation Modal for Property & Room Deletion -->
+<div
+    class="apple-modal-backdrop"
+    id="deleteConfirmModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deleteModalTitle"
+    aria-describedby="deleteModalDesc"
+    hidden
+>
+    <div class="apple-modal">
+        <div class="apple-modal-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+        </div>
+
+        <h2 class="apple-modal-title" id="deleteModalTitle">Confirm Deletion</h2>
+        <p class="apple-modal-desc" id="deleteModalDesc"></p>
+
+        <div class="apple-modal-actions">
+            <button type="button" class="apple-modal-cancel" id="deleteModalCancel">Cancel</button>
+            <button type="button" class="apple-modal-confirm" id="deleteModalConfirm">Delete</button>
+        </div>
+    </div>
+</div>
 
 <script src="/js/hostProperty.js" defer></script>
