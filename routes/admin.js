@@ -3,6 +3,7 @@ import db from "../config/db.js";
 import redis from "../config/redis.js";
 import { isLoggedIn, isAdmin } from "../middlewares/auth.js";
 import { rejectPropertySchema, hostVerifySchema } from "../utils/validator.js";
+import { sendPropertyApprovedEmail, sendPropertyRejectedEmail } from "../utils/mailer.js";
 
 const adminRouter = express.Router();
 
@@ -252,7 +253,7 @@ adminRouter.patch("/listings/:propertyId/approve", async (req, res, next) => {
 
         // Step 1: Check that this property exists
         const propertyResult = await db.execute(
-            `SELECT ID, title FROM properties WHERE ID = ?`,
+            `SELECT ID, title, city, state, HOST_ID FROM properties WHERE ID = ?`,
             [propertyId]
         );
         const propertyRows = propertyResult[0];
@@ -261,7 +262,7 @@ adminRouter.patch("/listings/:propertyId/approve", async (req, res, next) => {
             req.flash("error", "Property not found.");
             return res.redirect("/admin/dashboard");
         }
-        const propertyTitle = propertyRows[0].title;
+        const property = propertyRows[0];
 
         // Step 2: Update status to 'approved', save admin ID & timestamp, clear any old rejection reason
         await db.execute(
@@ -277,7 +278,26 @@ adminRouter.patch("/listings/:propertyId/approve", async (req, res, next) => {
         // Step 3: Clear /listings and /categories caches so this newly approved stay appears right away
         await clearListingPagesCache();
 
-        req.flash("success", `"${propertyTitle}" has been approved and is now live on Stayora!`);
+        // Step 4: Send approval email to the host
+        try {
+            const hostResult = await db.execute(
+                `SELECT NAME, EMAIL FROM users WHERE ID = ?`,
+                [property.HOST_ID]
+            );
+            const host = hostResult[0][0];
+
+            await sendPropertyApprovedEmail(host.EMAIL, {
+                propertyId: property.ID,
+                title: property.title,
+                city: property.city,
+                state: property.state,
+                hostName: host.NAME,
+            });
+        } catch (emailErr) {
+            console.error("Property approved email error:", emailErr);
+        }
+
+        req.flash("success", `"${property.title}" has been approved and is now live on Stayora!`);
         return res.redirect(`/admin/listings/${propertyId}`);
     } catch (err) {
         return next(err);
@@ -298,7 +318,7 @@ adminRouter.patch("/listings/:propertyId/reject", async (req, res, next) => {
 
         // Step 2: Check that this property exists
         const propertyResult = await db.execute(
-            `SELECT ID, title FROM properties WHERE ID = ?`,
+            `SELECT ID, title, city, state, HOST_ID FROM properties WHERE ID = ?`,
             [propertyId]
         );
         const propertyRows = propertyResult[0];
@@ -307,7 +327,7 @@ adminRouter.patch("/listings/:propertyId/reject", async (req, res, next) => {
             req.flash("error", "Property not found.");
             return res.redirect("/admin/dashboard");
         }
-        const propertyTitle = propertyRows[0].title;
+        const property = propertyRows[0];
 
         // Step 3: Update status to 'rejected' and store the admin's reason
         await db.execute(
@@ -324,7 +344,27 @@ adminRouter.patch("/listings/:propertyId/reject", async (req, res, next) => {
         await redis.del(`property:${propertyId}`);
         await clearListingPagesCache();
 
-        req.flash("success", `"${propertyTitle}" has been rejected.`);
+        // Step 5: Send rejection email with reason to the host
+        try {
+            const hostResult = await db.execute(
+                `SELECT NAME, EMAIL FROM users WHERE ID = ?`,
+                [property.HOST_ID]
+            );
+            const host = hostResult[0][0];
+
+            await sendPropertyRejectedEmail(host.EMAIL, {
+                propertyId: property.ID,
+                title: property.title,
+                city: property.city,
+                state: property.state,
+                hostName: host.NAME,
+                rejectionReason: validation.data.rejectionReason,
+            });
+        } catch (emailErr) {
+            console.error("Property rejected email error:", emailErr);
+        }
+
+        req.flash("success", `"${property.title}" has been rejected.`);
         return res.redirect(`/admin/listings/${propertyId}`);
     } catch (err) {
         return next(err);

@@ -54,6 +54,7 @@ app.use((req, res, next) => {// this will make value available in all ejs file g
     res.locals.currentUser = req.user;
     res.locals.success = req.flash("success");
     res.locals.error = req.flash("error");
+    res.locals.jarvis = req.flash("jarvis");
     next();
 });
 

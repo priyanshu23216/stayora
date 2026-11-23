@@ -126,7 +126,11 @@ router.post('/login/verify',loginIPlimiter, loginEmailLimiter, passport.authenti
     failureRedirect: "/authenticate/login",
     failureFlash: true,
 }), (req, res) => {
-    req.flash("success", `Welcome back, ${req.user.NAME}!`);
+    if (req.user.EMAIL === "priyanshu.singhswe2028@gmail.com") {
+        req.flash("jarvis", `Access granted. Welcome back, ${req.user.NAME}.`);
+    } else {
+        req.flash("success", `Welcome back, ${req.user.NAME}!`);
+    }
     res.redirect("/");
 });
 
@@ -276,7 +280,11 @@ router.get('/google/callback', passport.authenticate('google', {
     failureRedirect: '/authenticate/login',
     failureFlash: true,
 }), (req, res) => {
-    req.flash('success', `Welcome to Stayora, ${req.user.NAME}!`);
+    if (req.user.EMAIL === "priyanshu.singhswe2028@gmail.com") {
+        req.flash("jarvis", `Access granted. Welcome back, ${req.user.NAME}.`);
+    } else {
+        req.flash("success", `Welcome to Stayora, ${req.user.NAME}!`);
+    }
     res.redirect('/');
 });
 

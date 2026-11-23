@@ -451,5 +451,224 @@ export const passChangeAlertEmail = async (toEmail) => {
     return await transporter.sendMail(mailOptions);
 };
 
+// 5. Property Approved Email (sent to host when admin approves a listing)
+export const sendPropertyApprovedEmail = async (toEmail, property) => {
+    const listingUrl = `${process.env.APP_URL}/listings/${property.propertyId}`;
+    const mailOptions = {
+        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+        to: toEmail,
+        subject: `Listing Approved: ${property.title} is now live on Stayora`,
+        html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f7f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 40px 15px;">
+                <tr>
+                    <td align="center">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eef0f2;">
+
+                            <!-- Header / Logo -->
+                            <tr>
+                                <td style="padding: 28px 35px 20px; border-bottom: 1px solid #f0f2f5;">
+                                    <table width="100%">
+                                        <tr>
+                                            <td>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                            </td>
+                                            <td align="right">
+                                                <span style="background: #e6f9ed; color: #16a34a; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Approved</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Hero message -->
+                            <tr>
+                                <td style="padding: 30px 35px 15px;">
+                                    <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">Your listing is live!</h2>
+                                    <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
+                                        Hi <strong>${property.hostName}</strong>, great news! Your property <strong>${property.title}</strong> has passed our verification review and is now live for guests to book on Stayora.
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Property Details Card -->
+                            <tr>
+                                <td style="padding: 10px 35px 25px;">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Property</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.title}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Location</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.city}, ${property.state}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; font-size: 14px; color: #6b7280;">Status</td>
+                                            <td style="padding: 14px 18px; font-size: 14px; font-weight: 700; color: #16a34a;" align="right">Approved &amp; Live</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Action Link -->
+                            <tr>
+                                <td align="center" style="padding: 0 35px 25px;">
+                                    <a href="${listingUrl}" style="display: inline-block; background-color: #0071e3; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
+                                        View Your Live Listing
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Contact Support Note -->
+                            <tr>
+                                <td style="padding: 0 35px 30px;">
+                                    <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
+                                        Have questions about hosting? Contact us at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #fafbfc; padding: 20px; text-align: center; border-top: 1px solid #f0f2f5;">
+                                    <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                        © ${new Date().getFullYear()} Stayora Inc. All rights reserved.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        `,
+    };
+
+    return await transporter.sendMail(mailOptions);
+};
+
+// 6. Property Rejected / Delisted Email (sent to host when admin rejects or delists a listing)
+export const sendPropertyRejectedEmail = async (toEmail, property) => {
+    const editUrl = `${process.env.APP_URL}/host/listings/${property.propertyId}/edit`;
+    const mailOptions = {
+        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+        to: toEmail,
+        subject: `Listing Update: ${property.title} was not approved`,
+        html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f7f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 40px 15px;">
+                <tr>
+                    <td align="center">
+                        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eef0f2;">
+
+                            <!-- Header / Logo -->
+                            <tr>
+                                <td style="padding: 28px 35px 20px; border-bottom: 1px solid #f0f2f5;">
+                                    <table width="100%">
+                                        <tr>
+                                            <td>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                            </td>
+                                            <td align="right">
+                                                <span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Rejected</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Hero message -->
+                            <tr>
+                                <td style="padding: 30px 35px 15px;">
+                                    <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">Listing Review Update</h2>
+                                    <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
+                                        Hi <strong>${property.hostName}</strong>, your property <strong>${property.title}</strong> could not be approved (or has been unlisted) after review. Please see the reason below:
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Rejection Reason Box -->
+                            <tr>
+                                <td style="padding: 0 35px 15px;">
+                                    <div style="background-color: #fff1f2; border-left: 4px solid #dc2626; padding: 14px 16px; border-radius: 6px;">
+                                        <p style="margin: 0; font-size: 14px; line-height: 22px; color: #991b1b;">
+                                            <strong>Reason:</strong> ${property.rejectionReason}
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Property Details Card -->
+                            <tr>
+                                <td style="padding: 10px 35px 25px;">
+                                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Property</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.title}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Location</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.city}, ${property.state}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; font-size: 14px; color: #6b7280;">Status</td>
+                                            <td style="padding: 14px 18px; font-size: 14px; font-weight: 700; color: #dc2626;" align="right">Rejected</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+
+                            <!-- Action Link -->
+                            <tr>
+                                <td align="center" style="padding: 0 35px 25px;">
+                                    <a href="${editUrl}" style="display: inline-block; background-color: #1d1d1f; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
+                                        Edit &amp; Update Listing
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <!-- Contact Support Note -->
+                            <tr>
+                                <td style="padding: 0 35px 30px;">
+                                    <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
+                                        Need help resolving this? Reach out to our team at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                    </p>
+                                </td>
+                            </tr>
+
+                            <!-- Footer -->
+                            <tr>
+                                <td style="background-color: #fafbfc; padding: 20px; text-align: center; border-top: 1px solid #f0f2f5;">
+                                    <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                                        © ${new Date().getFullYear()} Stayora Inc. All rights reserved.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        `,
+    };
+
+    return await transporter.sendMail(mailOptions);
+};
+
 
 
