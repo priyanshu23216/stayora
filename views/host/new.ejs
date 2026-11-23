@@ -1,0 +1,282 @@
+<section class="host-page host-form-page">
+    <div class="host-breadcrumb">
+        <a href="/host/dashboard" class="host-back-link">&larr; Back to My Dashboard</a>
+    </div>
+
+    <header class="host-header host-header-stack">
+        <div class="host-header-text">
+            <span class="host-eyebrow">Host Dashboard</span>
+            <h1 class="host-title">Create a New Listing</h1>
+            <p class="host-subtitle">Add your property details, photos, and amenities. New listings are submitted for quick verification.</p>
+        </div>
+    </header>
+
+    <form action="/host/listings" method="POST" enctype="multipart/form-data" class="host-form" id="newListingForm">
+        <!-- 1. Basic Information -->
+        <div class="host-card">
+            <h2 class="host-card-title">Basic Information</h2>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="title">Property Title</label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        placeholder="e.g. Sunlit Coastal Villa in Assagao"
+                        minlength="3"
+                        maxlength="120"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="propertyType">Property Type</label>
+                    <select id="propertyType" name="propertyType" required>
+                        <option value="" disabled selected>Select property type</option>
+                        <option value="hotel">Hotel</option>
+                        <option value="resort">Resort</option>
+                        <option value="villa">Villa</option>
+                        <option value="apartment">Apartment</option>
+                        <option value="guesthouse">Guesthouse</option>
+                        <option value="hostel">Hostel</option>
+                    </select>
+                </div>
+
+                <div class="host-field">
+                    <label for="pricePerNight">Base Price per Night (&#8377;)</label>
+                    <input
+                        type="number"
+                        id="pricePerNight"
+                        name="pricePerNight"
+                        min="100"
+                        step="50"
+                        placeholder="e.g. 4500"
+                        required
+                    >
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="description">Description</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        minlength="10"
+                        placeholder="Describe what makes your stay special, nearby landmarks, and the atmosphere..."
+                        required
+                    ></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Location -->
+        <div class="host-card">
+            <h2 class="host-card-title">Location</h2>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="location">Area / Street Address</label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        placeholder="e.g. Assagao, North Goa"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="city">City</label>
+                    <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        placeholder="e.g. Goa"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="state">State</label>
+                    <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        placeholder="e.g. Goa"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="pincode">Pincode</label>
+                    <input
+                        type="text"
+                        id="pincode"
+                        name="pincode"
+                        placeholder="e.g. 403507"
+                        maxlength="6"
+                        pattern="[1-9][0-9]{5}"
+                        title="Enter a valid 6-digit Indian pincode"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="latitude">Latitude <span class="host-optional">(Optional)</span></label>
+                    <input
+                        type="number"
+                        id="latitude"
+                        name="latitude"
+                        step="any"
+                        placeholder="e.g. 15.5912"
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="longitude">Longitude <span class="host-optional">(Optional)</span></label>
+                    <input
+                        type="number"
+                        id="longitude"
+                        name="longitude"
+                        step="any"
+                        placeholder="e.g. 73.7675"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Capacity & Policies -->
+        <div class="host-card">
+            <h2 class="host-card-title">Capacity &amp; Stay Policies</h2>
+
+            <div class="host-field-grid host-field-grid-3">
+                <div class="host-field">
+                    <label for="totalRooms">Total Rooms</label>
+                    <input
+                        type="number"
+                        id="totalRooms"
+                        name="totalRooms"
+                        min="1"
+                        value="1"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="maxGuests">Max Guests</label>
+                    <input
+                        type="number"
+                        id="maxGuests"
+                        name="maxGuests"
+                        min="1"
+                        value="2"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="bathrooms">Bathrooms</label>
+                    <input
+                        type="number"
+                        id="bathrooms"
+                        name="bathrooms"
+                        min="1"
+                        value="1"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="checkInTime">Check-in Time</label>
+                    <input
+                        type="time"
+                        id="checkInTime"
+                        name="checkInTime"
+                        value="13:00"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="checkOutTime">Check-out Time</label>
+                    <input
+                        type="time"
+                        id="checkOutTime"
+                        name="checkOutTime"
+                        value="11:00"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="cancellationPolicy">Cancellation Policy</label>
+                    <select id="cancellationPolicy" name="cancellationPolicy" required>
+                        <option value="Flexible — Free cancellation up to 24 hours before check-in">Flexible (24h before check-in)</option>
+                        <option value="Moderate — Free cancellation up to 5 days before check-in">Moderate (5 days before check-in)</option>
+                        <option value="Strict — 50% refund up to 7 days before check-in">Strict (7 days before check-in)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Photos (Multipart Upload) -->
+        <div class="host-card">
+            <h2 class="host-card-title">Property Photos</h2>
+            <p class="host-card-hint">Upload JPEG, PNG, WEBP, or AVIF images (max 5 MB each).</p>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="coverImage">Cover Photo</label>
+                    <input
+                        type="file"
+                        id="coverImage"
+                        name="coverImage"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        class="host-file-input"
+                        required
+                    >
+                    <div id="coverPreview" class="host-preview-single" aria-live="polite"></div>
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="galleryImages">Gallery Photos <span class="host-optional">(Optional, up to 6)</span></label>
+                    <input
+                        type="file"
+                        id="galleryImages"
+                        name="galleryImages"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        class="host-file-input"
+                        multiple
+                    >
+                    <div id="galleryPreview" class="host-preview-grid" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Amenities -->
+        <% if (amenities && amenities.length > 0) { %>
+            <div class="host-card">
+                <h2 class="host-card-title">Amenities</h2>
+                <p class="host-card-hint">Select all amenities available at your property.</p>
+
+                <div class="host-amenities-grid">
+                    <% for (let amenity of amenities) { %>
+                        <label class="host-amenity-chip">
+                            <input type="checkbox" name="amenities" value="<%= amenity.ID %>">
+                            <span><%= amenity.NAME %></span>
+                        </label>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- Submit Actions -->
+        <div class="host-form-actions">
+            <a href="/host/dashboard" class="host-cancel-btn">Cancel</a>
+            <button type="submit" class="host-submit-btn" id="submitListingBtn">Publish Listing</button>
+        </div>
+    </form>
+</section>
+
+<script src="/js/hostNewListing.js" defer></script>

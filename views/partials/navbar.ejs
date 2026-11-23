@@ -12,7 +12,7 @@
                 placeholder="Search destinations, cities..."
                 aria-label="Search destinations or cities"
                 <% if ( typeof searchQuery !== 'undefined') { %>
-                value = <%= searchQuery %>
+                value="<%= searchQuery %>"
                <% } %> 
             >
             <datalist id="stayora-cities">
@@ -68,7 +68,7 @@
             <% if (!currentUser || currentUser.ROLE !== 'host') { %>
                 <a href="/listings/update/host" class="nav-host-btn">+ Become a Host</a>
             <% } else { %>
-                <a href="/listings/host/dashboard" class="nav-dashboard-btn">My Dashboard</a>
+                <a href="/host/dashboard" class="nav-dashboard-btn">My Dashboard</a>
             <% } %>
 
             <% if (currentUser) { %>

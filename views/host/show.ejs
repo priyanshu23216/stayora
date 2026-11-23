@@ -1,0 +1,185 @@
+<section class="host-page">
+    <div class="host-breadcrumb">
+        <a href="/host/dashboard" class="host-back-link">&larr; Back to My Dashboard</a>
+    </div>
+
+    <!-- Header with Property Title, Status Pills, and Edit / Delete Actions -->
+    <header class="host-header">
+        <div class="host-header-text">
+            <div class="host-pill-row">
+                <span class="host-eyebrow"><%= property.PROPERTY_TYPE %></span>
+                <span class="host-inline-status host-status-<%= property.verification_status %>">
+                    <%= property.verification_status %>
+                </span>
+                <span class="host-avail-pill host-avail-<%= property.AVAILABILITY_STATUS %>">
+                    <%= property.AVAILABILITY_STATUS %>
+                </span>
+            </div>
+            <h1 class="host-title"><%= property.title %></h1>
+            <p class="host-subtitle"><%= property.location %>, <%= property.city %>, <%= property.state %> &mdash; <%= property.pincode %></p>
+        </div>
+
+        <div class="host-action-group">
+            <a href="/host/listings/<%= property.ID %>/edit" class="host-edit-btn">Edit Property</a>
+
+            <form
+                action="/host/listings/<%= property.ID %>?_method=DELETE"
+                method="POST"
+                class="host-delete-form"
+                id="deletePropertyForm"
+            >
+                <button type="submit" class="host-delete-btn">Delete Property</button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Cover Photo & Gallery -->
+    <div class="host-media-section">
+        <div class="host-cover-wrap">
+            <img src="<%= property.image %>" alt="<%= property.title %>" class="host-cover-img">
+        </div>
+
+        <% if (propertyImages && propertyImages.length > 0) { %>
+            <div class="host-gallery-strip">
+                <% for (let img of propertyImages) { %>
+                    <img src="<%= img.IMAGE_URL %>" alt="<%= property.title %> gallery photo" class="host-gallery-thumb">
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- Details & Specs Grid -->
+    <div class="host-detail-grid">
+        <div class="host-card">
+            <h2 class="host-card-title">About This Property</h2>
+            <p class="host-description"><%= property.description %></p>
+
+            <% if (propertyAmenities && propertyAmenities.length > 0) { %>
+                <h3 class="host-subheading">Amenities</h3>
+                <div class="host-amenities-grid">
+                    <% for (let amenity of propertyAmenities) { %>
+                        <span class="host-amenity-tag"><%= amenity.NAME %></span>
+                    <% } %>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="host-card">
+            <h2 class="host-card-title">Property Summary</h2>
+            <div class="host-spec-list">
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Base Price</span>
+                    <span class="host-spec-val">&#8377;<%= property.price_per_night %> / night</span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Property Type</span>
+                    <span class="host-spec-val host-capitalize"><%= property.PROPERTY_TYPE %></span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Total Rooms</span>
+                    <span class="host-spec-val"><%= property.total_rooms %></span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Max Guests</span>
+                    <span class="host-spec-val"><%= property.max_guests %></span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Bathrooms</span>
+                    <span class="host-spec-val"><%= property.BATHROOMS %></span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Check-in</span>
+                    <span class="host-spec-val"><%= String(property.check_in_time).slice(0, 5) %></span>
+                </div>
+                <div class="host-spec-row">
+                    <span class="host-spec-key">Check-out</span>
+                    <span class="host-spec-val"><%= String(property.check_out_time).slice(0, 5) %></span>
+                </div>
+                <div class="host-spec-row host-spec-row-col">
+                    <span class="host-spec-key">Cancellation Policy</span>
+                    <span class="host-spec-val"><%= property.cancellation_policy %></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rooms Section (Full Room CRUD right inside View More) -->
+    <section class="host-card host-rooms-section">
+        <div class="host-section-header">
+            <div>
+                <h2 class="host-card-title">Rooms</h2>
+                <p class="host-card-hint">
+                    <% if (rooms.length === 1) { %>
+                        1 room type listed under this property.
+                    <% } else { %>
+                        <%= rooms.length %> room types listed under this property.
+                    <% } %>
+                </p>
+            </div>
+
+            <a href="/host/listings/<%= property.ID %>/rooms/new" class="host-new-btn">+ Add Room</a>
+        </div>
+
+        <% if (rooms.length === 0) { %>
+            <div class="host-rooms-empty">
+                <p>No rooms added yet. Add at least one room so guests can book this property.</p>
+                <a href="/host/listings/<%= property.ID %>/rooms/new" class="host-new-btn host-rooms-empty-btn">+ Add Your First Room</a>
+            </div>
+        <% } else { %>
+            <div class="host-rooms-list">
+                <% for (let room of rooms) { %>
+                    <article class="host-room-card">
+                        <div class="host-room-media">
+                            <% if (room.images && room.images.length > 0) { %>
+                                <img src="<%= room.images[0].IMAGE_URL %>" alt="<%= room.ROOM_TYPE %>" class="host-room-img">
+                            <% } else { %>
+                                <img src="<%= property.image %>" alt="<%= room.ROOM_TYPE %>" class="host-room-img">
+                            <% } %>
+                        </div>
+
+                        <div class="host-room-body">
+                            <div class="host-room-top">
+                                <div>
+                                    <h3 class="host-room-name"><%= room.ROOM_TYPE %></h3>
+                                    <p class="host-room-price">&#8377;<%= room.PRICE_PER_NIGHT %> <span>/ night</span></p>
+                                </div>
+
+                                <div class="host-room-actions">
+                                    <a href="/host/listings/<%= property.ID %>/rooms/<%= room.ID %>/edit" class="host-room-edit-btn">Edit</a>
+
+                                    <form
+                                        action="/host/listings/<%= property.ID %>/rooms/<%= room.ID %>?_method=DELETE"
+                                        method="POST"
+                                        class="host-delete-form js-delete-room-form"
+                                    >
+                                        <button type="submit" class="host-room-delete-btn">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <p class="host-room-desc"><%= room.DESCRIPTION %></p>
+
+                            <div class="host-room-meta">
+                                <span class="host-room-badge">Up to <%= room.CAPACITY %> guests</span>
+                                <span class="host-room-badge"><%= room.TOTAL_ROOMS %> unit(s) available</span>
+                                <% if (room.images && room.images.length > 1) { %>
+                                    <span class="host-room-badge"><%= room.images.length %> photos</span>
+                                <% } %>
+                            </div>
+
+                            <% if (room.amenities && room.amenities.length > 0) { %>
+                                <div class="host-room-amenities">
+                                    <% for (let item of room.amenities) { %>
+                                        <span class="host-amenity-tag host-amenity-tag-sm"><%= item.NAME %></span>
+                                    <% } %>
+                                </div>
+                            <% } %>
+                        </div>
+                    </article>
+                <% } %>
+            </div>
+        <% } %>
+    </section>
+</section>
+
+<script src="/js/hostProperty.js" defer></script>

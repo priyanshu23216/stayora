@@ -254,11 +254,16 @@ lists.get('/' , async( req , res , next)=>{
 
 lists.get('/update/host' , isLoggedIn, async( req , res , next)=>{
     try{
-        if( req.user.ROLE !== 'host'){
-        await db.execute('UPDATE USERS SET ROLE = ? WHERE ID = ?' , ['host' , req.user.ID] );
-        req.flash("success" , "Welcome to Stayora Hosting! You're ready to list your first stay.");
-        return res.redirect('/');
-    };
+        if (req.user.ROLE === 'admin') {
+            req.flash("error", "Admin accounts cannot be switched to host accounts.");
+            return res.redirect('/');
+        }
+        if (req.user.ROLE !== 'host') {
+            await db.execute('UPDATE users SET ROLE = ? WHERE ID = ?', ['host', req.user.ID]);
+            req.user.ROLE = 'host';
+            req.flash("success", "Welcome to Stayora Hosting! You're ready to list your first stay.");
+        }
+        return res.redirect('/host/dashboard');
     }catch( err ){
         return next( err );
     };

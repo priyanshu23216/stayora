@@ -1,0 +1,329 @@
+<section class="host-page host-form-page">
+    <div class="host-breadcrumb">
+        <a href="/host/listings/<%= property.ID %>" class="host-back-link">&larr; Back to Property</a>
+    </div>
+
+    <header class="host-header host-header-stack">
+        <div class="host-header-text">
+            <span class="host-eyebrow">Edit Listing</span>
+            <h1 class="host-title"><%= property.title %></h1>
+            <p class="host-subtitle">Update your property details, availability, photos, or amenities.</p>
+        </div>
+    </header>
+
+    <form
+        action="/host/listings/<%= property.ID %>?_method=PUT"
+        method="POST"
+        enctype="multipart/form-data"
+        class="host-form"
+        id="newListingForm"
+    >
+        <!-- 1. Basic Information -->
+        <div class="host-card">
+            <h2 class="host-card-title">Basic Information</h2>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="title">Property Title</label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        value="<%= property.title %>"
+                        minlength="3"
+                        maxlength="120"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="propertyType">Property Type</label>
+                    <select id="propertyType" name="propertyType" required>
+                        <option value="hotel" <% if (property.PROPERTY_TYPE === "hotel") { %>selected<% } %>>Hotel</option>
+                        <option value="resort" <% if (property.PROPERTY_TYPE === "resort") { %>selected<% } %>>Resort</option>
+                        <option value="villa" <% if (property.PROPERTY_TYPE === "villa") { %>selected<% } %>>Villa</option>
+                        <option value="apartment" <% if (property.PROPERTY_TYPE === "apartment") { %>selected<% } %>>Apartment</option>
+                        <option value="guesthouse" <% if (property.PROPERTY_TYPE === "guesthouse") { %>selected<% } %>>Guesthouse</option>
+                        <option value="hostel" <% if (property.PROPERTY_TYPE === "hostel") { %>selected<% } %>>Hostel</option>
+                    </select>
+                </div>
+
+                <div class="host-field">
+                    <label for="availabilityStatus">Availability Status</label>
+                    <select id="availabilityStatus" name="availabilityStatus" required>
+                        <option value="available" <% if (property.AVAILABILITY_STATUS === "available") { %>selected<% } %>>Available</option>
+                        <option value="unavailable" <% if (property.AVAILABILITY_STATUS === "unavailable") { %>selected<% } %>>Unavailable</option>
+                    </select>
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="pricePerNight">Base Price per Night (&#8377;)</label>
+                    <input
+                        type="number"
+                        id="pricePerNight"
+                        name="pricePerNight"
+                        value="<%= property.price_per_night %>"
+                        min="100"
+                        step="50"
+                        required
+                    >
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="description">Description</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        minlength="10"
+                        required
+                    ><%= property.description %></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Location -->
+        <div class="host-card">
+            <h2 class="host-card-title">Location</h2>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="location">Area / Street Address</label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        value="<%= property.location %>"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="city">City</label>
+                    <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value="<%= property.city %>"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="state">State</label>
+                    <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value="<%= property.state %>"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="pincode">Pincode</label>
+                    <input
+                        type="text"
+                        id="pincode"
+                        name="pincode"
+                        value="<%= property.pincode %>"
+                        maxlength="6"
+                        pattern="[1-9][0-9]{5}"
+                        title="Enter a valid 6-digit Indian pincode"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="latitude">Latitude <span class="host-optional">(Optional)</span></label>
+                    <input
+                        type="number"
+                        id="latitude"
+                        name="latitude"
+                        step="any"
+                        <% if (property.latitude !== null && property.latitude !== undefined) { %>
+                            value="<%= property.latitude %>"
+                        <% } %>
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="longitude">Longitude <span class="host-optional">(Optional)</span></label>
+                    <input
+                        type="number"
+                        id="longitude"
+                        name="longitude"
+                        step="any"
+                        <% if (property.longitude !== null && property.longitude !== undefined) { %>
+                            value="<%= property.longitude %>"
+                        <% } %>
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Capacity & Stay Policies -->
+        <div class="host-card">
+            <h2 class="host-card-title">Capacity &amp; Stay Policies</h2>
+
+            <div class="host-field-grid host-field-grid-3">
+                <div class="host-field">
+                    <label for="totalRooms">Total Rooms</label>
+                    <input
+                        type="number"
+                        id="totalRooms"
+                        name="totalRooms"
+                        value="<%= property.total_rooms %>"
+                        min="1"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="maxGuests">Max Guests</label>
+                    <input
+                        type="number"
+                        id="maxGuests"
+                        name="maxGuests"
+                        value="<%= property.max_guests %>"
+                        min="1"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="bathrooms">Bathrooms</label>
+                    <input
+                        type="number"
+                        id="bathrooms"
+                        name="bathrooms"
+                        value="<%= property.BATHROOMS %>"
+                        min="1"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="checkInTime">Check-in Time</label>
+                    <input
+                        type="time"
+                        id="checkInTime"
+                        name="checkInTime"
+                        value="<%= checkInValue %>"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="checkOutTime">Check-out Time</label>
+                    <input
+                        type="time"
+                        id="checkOutTime"
+                        name="checkOutTime"
+                        value="<%= checkOutValue %>"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="cancellationPolicy">Cancellation Policy</label>
+                    <select id="cancellationPolicy" name="cancellationPolicy" required>
+                        <option
+                            value="Flexible — Free cancellation up to 24 hours before check-in"
+                            <% if (property.cancellation_policy && (property.cancellation_policy.startsWith("Flexible") || property.cancellation_policy.startsWith("Free"))) { %>selected<% } %>
+                        >Flexible (24h before check-in)</option>
+                        <option
+                            value="Moderate — Free cancellation up to 5 days before check-in"
+                            <% if (property.cancellation_policy && property.cancellation_policy.startsWith("Moderate")) { %>selected<% } %>
+                        >Moderate (5 days before check-in)</option>
+                        <option
+                            value="Strict — 50% refund up to 7 days before check-in"
+                            <% if (property.cancellation_policy && property.cancellation_policy.startsWith("Strict")) { %>selected<% } %>
+                        >Strict (7 days before check-in)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Photos (Optional on Edit) -->
+        <div class="host-card">
+            <h2 class="host-card-title">Property Photos</h2>
+            <p class="host-card-hint">Leave file inputs empty to keep your existing photos. Max 5 MB per image.</p>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label>Current Cover Photo</label>
+                    <div class="host-preview-single">
+                        <img src="<%= property.image %>" alt="<%= property.title %>">
+                    </div>
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="coverImage">Replace Cover Photo <span class="host-optional">(Optional)</span></label>
+                    <input
+                        type="file"
+                        id="coverImage"
+                        name="coverImage"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        class="host-file-input"
+                    >
+                    <div id="coverPreview" class="host-preview-single" aria-live="polite"></div>
+                </div>
+
+                <% if (propertyImages && propertyImages.length > 0) { %>
+                    <div class="host-field host-field-full">
+                        <label>Current Gallery Photos</label>
+                        <div class="host-preview-grid">
+                            <% for (let img of propertyImages) { %>
+                                <img src="<%= img.IMAGE_URL %>" alt="<%= property.title %> gallery photo">
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+
+                <div class="host-field host-field-full">
+                    <label for="galleryImages">Add More Gallery Photos <span class="host-optional">(Optional, up to 6)</span></label>
+                    <input
+                        type="file"
+                        id="galleryImages"
+                        name="galleryImages"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        class="host-file-input"
+                        multiple
+                    >
+                    <div id="galleryPreview" class="host-preview-grid" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Amenities -->
+        <% if (amenities && amenities.length > 0) { %>
+            <div class="host-card">
+                <h2 class="host-card-title">Amenities</h2>
+                <p class="host-card-hint">Update the amenities available at your property.</p>
+
+                <div class="host-amenities-grid">
+                    <% for (let amenity of amenities) { %>
+                        <label class="host-amenity-chip">
+                            <input
+                                type="checkbox"
+                                name="amenities"
+                                value="<%= amenity.ID %>"
+                                <% if (selectedAmenityIds.includes(amenity.ID)) { %>checked<% } %>
+                            >
+                            <span><%= amenity.NAME %></span>
+                        </label>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- Submit Actions -->
+        <div class="host-form-actions">
+            <a href="/host/listings/<%= property.ID %>" class="host-cancel-btn">Cancel</a>
+            <button type="submit" class="host-submit-btn" id="submitListingBtn">Save Changes</button>
+        </div>
+    </form>
+</section>
+
+<script src="/js/hostNewListing.js" defer></script>

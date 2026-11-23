@@ -1,0 +1,926 @@
+/* ==========================================================================
+   Stayora Host Dashboard & New Listing (host.css) — Mobile-First Apple UI
+   ========================================================================== */
+
+.host-page {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 16px 88px;
+    font-family: var(--apple-font-text);
+    color: var(--apple-on-surface);
+    -webkit-font-smoothing: antialiased;
+}
+
+.host-form-page {
+    max-width: 860px;
+}
+
+/* 1. Breadcrumb */
+.host-breadcrumb {
+    margin-bottom: 16px;
+}
+
+.host-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--apple-primary);
+    text-decoration: none;
+    transition: opacity 0.18s ease;
+}
+
+.host-back-link:hover {
+    opacity: 0.75;
+}
+
+/* 2. Page Header & Top-Right "+ New Listing" Button */
+.host-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.host-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6e6e73;
+    background-color: var(--apple-surface);
+    padding: 5px 12px;
+    border-radius: 9999px;
+    margin-bottom: 10px;
+}
+
+.host-title {
+    font-family: var(--apple-font-display);
+    font-size: clamp(28px, 3.8vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    margin: 0 0 8px;
+    color: var(--apple-on-surface);
+}
+
+.host-subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #6e6e73;
+}
+
+.host-new-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--apple-font-text);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-neutral);
+    background-color: var(--apple-primary);
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.22);
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.host-new-btn:hover {
+    background-color: var(--apple-secondary);
+    box-shadow: 0 8px 22px rgba(0, 113, 227, 0.3);
+}
+
+.host-new-btn:active {
+    transform: scale(0.97);
+}
+
+/* 3. Empty Dashboard State */
+.host-empty {
+    text-align: center;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 24px;
+    padding: 64px 24px;
+}
+
+.host-empty h2 {
+    font-family: var(--apple-font-display);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    color: var(--apple-on-surface);
+}
+
+.host-empty p {
+    color: #6e6e73;
+    margin: 0 auto 24px;
+    max-width: 420px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* 4. Host Dashboard Listing Cards */
+.host-listings-grid {
+    padding: 0;
+}
+
+.host-listing-card {
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.host-listing-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+}
+
+.host-status-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    padding: 5px 11px;
+    border-radius: 9999px;
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.host-status-approved {
+    background-color: rgba(209, 250, 229, 0.92);
+    color: #065f46;
+}
+
+.host-status-pending {
+    background-color: rgba(254, 243, 199, 0.92);
+    color: #92400e;
+}
+
+.host-status-rejected {
+    background-color: rgba(254, 226, 226, 0.92);
+    color: #991b1b;
+}
+
+.host-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.host-card-meta .listing-price {
+    margin: 0;
+}
+
+.host-avail-pill {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background-color: var(--apple-surface);
+    color: #6e6e73;
+}
+
+.host-avail-available {
+    background-color: #ecfdf5;
+    color: #047857;
+}
+
+.host-avail-reserved {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+}
+
+.host-avail-unavailable {
+    background-color: #fef2f2;
+    color: #b91c1c;
+}
+
+/* 5. Multipart New Listing Form */
+.host-form {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.host-card {
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 22px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
+}
+
+.host-card-title {
+    font-family: var(--apple-font-display);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    color: var(--apple-on-surface);
+}
+
+.host-card-hint {
+    font-size: 13.5px;
+    color: #6e6e73;
+    margin: -10px 0 18px;
+    line-height: 1.45;
+}
+
+.host-field-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.host-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.host-field label {
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6e6e73;
+    padding-left: 2px;
+}
+
+.host-optional {
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #86868b;
+}
+
+.host-field input[type="text"],
+.host-field input[type="number"],
+.host-field input[type="time"],
+.host-field select,
+.host-field textarea {
+    width: 100%;
+    font-family: var(--apple-font-text);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--apple-on-surface);
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    border-radius: 14px;
+    padding: 13px 16px;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.host-field input::placeholder,
+.host-field textarea::placeholder {
+    color: #86868b;
+    font-weight: 400;
+}
+
+.host-field select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 42px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+}
+
+.host-field textarea {
+    resize: vertical;
+    min-height: 112px;
+    line-height: 1.55;
+    font-weight: 400;
+}
+
+.host-field input:hover,
+.host-field select:hover,
+.host-field textarea:hover {
+    background-color: #efeff4;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+.host-field input:focus,
+.host-field select:focus,
+.host-field textarea:focus {
+    outline: none;
+    background-color: var(--apple-neutral);
+    border-color: var(--apple-primary);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14);
+}
+
+/* 6. File Upload Inputs & Image Previews */
+.host-file-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-family: var(--apple-font-text);
+    font-size: 14px;
+    color: #6e6e73;
+    background-color: var(--apple-surface);
+    border: 1.5px dashed rgba(0, 0, 0, 0.18);
+    border-radius: 16px;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.host-file-input:hover {
+    border-color: var(--apple-primary);
+    background-color: rgba(0, 113, 227, 0.04);
+}
+
+.host-file-input::file-selector-button {
+    font-family: var(--apple-font-text);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-neutral);
+    background-color: var(--apple-tertiary);
+    border: none;
+    border-radius: 9999px;
+    padding: 8px 16px;
+    margin-right: 14px;
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.15s ease;
+}
+
+.host-file-input::file-selector-button:hover {
+    background-color: var(--apple-primary);
+}
+
+.host-preview-single:not(:empty) {
+    margin-top: 12px;
+}
+
+.host-preview-single img {
+    width: 100%;
+    max-width: 340px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.host-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 10px;
+}
+
+.host-preview-grid:not(:empty) {
+    margin-top: 12px;
+}
+
+.host-preview-grid img {
+    width: 100%;
+    height: 92px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* 7. Amenities Pill Selector */
+.host-amenities-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.host-amenity-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 9999px;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--apple-on-surface);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+
+.host-amenity-chip:hover {
+    background-color: #efeff4;
+    border-color: rgba(0, 0, 0, 0.16);
+}
+
+.host-amenity-chip:has(input:checked) {
+    background-color: rgba(0, 113, 227, 0.1);
+    border-color: var(--apple-primary);
+    color: var(--apple-primary);
+}
+
+.host-amenity-chip input {
+    accent-color: var(--apple-primary);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+/* 8. Form Footer Actions */
+.host-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 6px;
+}
+
+.host-cancel-btn {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6e6e73;
+    text-decoration: none;
+    padding: 12px 22px;
+    border-radius: 9999px;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.host-cancel-btn:hover {
+    background-color: var(--apple-surface);
+    color: var(--apple-on-surface);
+}
+
+.host-submit-btn {
+    font-family: var(--apple-font-text);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-neutral);
+    background-color: var(--apple-primary);
+    border: none;
+    border-radius: 9999px;
+    padding: 14px 32px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.24);
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.host-submit-btn:hover {
+    background-color: var(--apple-secondary);
+    box-shadow: 0 8px 22px rgba(0, 113, 227, 0.32);
+}
+
+.host-submit-btn:active {
+    transform: scale(0.98);
+}
+
+.host-submit-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* 9. Tablet & Desktop Breakpoints */
+@media (min-width: 640px) {
+    .host-page {
+        padding: 36px 24px 96px;
+    }
+
+    .host-card {
+        padding: 28px 30px;
+    }
+
+    .host-field-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .host-field-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .host-field-full {
+        grid-column: 1 / -1;
+    }
+}
+
+/* 10. Host Property Detail Page (show.ejs) */
+.host-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.host-pill-row .host-eyebrow {
+    margin-bottom: 0;
+}
+
+.host-inline-status {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    padding: 4px 11px;
+    border-radius: 9999px;
+}
+
+.host-action-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.host-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--apple-font-text);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--apple-neutral);
+    background-color: var(--apple-primary);
+    text-decoration: none;
+    padding: 11px 22px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.22);
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.host-edit-btn:hover {
+    background-color: var(--apple-secondary);
+    box-shadow: 0 8px 20px rgba(0, 113, 227, 0.28);
+}
+
+.host-delete-form {
+    margin: 0;
+}
+
+.host-delete-btn {
+    font-family: var(--apple-font-text);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--apple-error);
+    background-color: #fff1f2;
+    border: 1px solid rgba(215, 0, 21, 0.2);
+    border-radius: 9999px;
+    padding: 11px 20px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.host-delete-btn:hover {
+    background-color: var(--apple-error);
+    border-color: var(--apple-error);
+    color: var(--apple-neutral);
+}
+
+.host-media-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.host-cover-wrap {
+    width: 100%;
+    height: clamp(240px, 42vw, 440px);
+    border-radius: 22px;
+    overflow: hidden;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.host-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.host-gallery-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+}
+
+.host-gallery-thumb {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    display: block;
+}
+
+.host-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.host-description {
+    margin: 0 0 20px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: #3a3a3c;
+}
+
+.host-subheading {
+    font-family: var(--apple-font-display);
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--apple-on-surface);
+}
+
+.host-amenity-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 9999px;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--apple-on-surface);
+}
+
+.host-spec-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.host-spec-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 14px;
+}
+
+.host-spec-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.host-spec-row-col {
+    flex-direction: column;
+    gap: 4px;
+}
+
+.host-spec-key {
+    color: #6e6e73;
+    font-weight: 500;
+}
+
+.host-spec-val {
+    color: var(--apple-on-surface);
+    font-weight: 600;
+}
+
+.host-capitalize {
+    text-transform: capitalize;
+}
+
+/* Rooms Preview Section */
+.host-rooms-section {
+    margin-top: 4px;
+}
+
+.host-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.host-section-header .host-card-title {
+    margin-bottom: 4px;
+}
+
+.host-section-header .host-card-hint {
+    margin: 0;
+}
+
+.host-rooms-empty {
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 18px;
+    padding: 36px 20px;
+    text-align: center;
+    color: #6e6e73;
+    font-size: 14.5px;
+}
+
+.host-rooms-empty p {
+    margin: 0 0 18px;
+}
+
+.host-rooms-empty-btn {
+    padding: 10px 20px;
+    font-size: 13.5px;
+}
+
+.host-rooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.host-room-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 20px;
+    padding: 16px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.host-room-card:hover {
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
+}
+
+.host-room-media {
+    width: 100%;
+    height: 190px;
+    border-radius: 14px;
+    overflow: hidden;
+    background-color: #e5e5ea;
+}
+
+.host-room-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.host-room-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.host-room-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.host-room-name {
+    font-family: var(--apple-font-display);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+    color: var(--apple-on-surface);
+}
+
+.host-room-price {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--apple-on-surface);
+}
+
+.host-room-price span {
+    font-size: 13px;
+    font-weight: 400;
+    color: #6e6e73;
+}
+
+.host-room-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.host-room-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--apple-font-text);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-primary);
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 113, 227, 0.28);
+    border-radius: 9999px;
+    padding: 7px 16px;
+    text-decoration: none;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.host-room-edit-btn:hover {
+    background-color: var(--apple-primary);
+    border-color: var(--apple-primary);
+    color: var(--apple-neutral);
+}
+
+.host-room-delete-btn {
+    font-family: var(--apple-font-text);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-error);
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(215, 0, 21, 0.24);
+    border-radius: 9999px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.host-room-delete-btn:hover {
+    background-color: var(--apple-error);
+    border-color: var(--apple-error);
+    color: var(--apple-neutral);
+}
+
+.host-room-desc {
+    margin: 0;
+    font-size: 14px;
+    color: #515154;
+    line-height: 1.55;
+}
+
+.host-room-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.host-room-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #424245;
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 9999px;
+    padding: 5px 12px;
+}
+
+.host-room-amenities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 4px;
+}
+
+.host-amenity-tag-sm {
+    font-size: 12px;
+    padding: 5px 11px;
+    background-color: rgba(255, 255, 255, 0.85);
+}
+
+@media (min-width: 720px) {
+    .host-room-card {
+        grid-template-columns: 240px 1fr;
+        gap: 20px;
+        padding: 18px;
+    }
+
+    .host-room-media {
+        height: 100%;
+        min-height: 175px;
+    }
+}
+
+@media (min-width: 860px) {
+    .host-detail-grid {
+        grid-template-columns: 1.4fr 1fr;
+    }
+}

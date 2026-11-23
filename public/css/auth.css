@@ -102,6 +102,10 @@
     color: #86868b;
 }
 
+.auth-field input:hover {
+    border-color: #a1a1a6;
+}
+
 .auth-field input:focus {
     border-color: var(--apple-primary);
     box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.14);
@@ -238,12 +242,12 @@
 }
 
 /* OTP Verification */
-.auth-otp-input {
+.auth-field input.auth-otp-input {
     text-align: center;
-    font-size: 22px !important;
-    font-weight: 600 !important;
+    font-size: 22px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.35em !important;
+    letter-spacing: 0.35em;
 }
 
 .auth-resend-form {

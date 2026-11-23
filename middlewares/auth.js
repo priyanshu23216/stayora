@@ -17,7 +17,7 @@ export const isHost = (req, res, next) => {
 };
 
 export const isGuest = (req, res, next) => {
-    // Hosts can also browse/book stays as guests; restrict to "guest" only if needed
+    // Hosts can also browse/book stays and view their own trips as guests
     if (req.user.ROLE !== "guest" && req.user.ROLE !== "host") {
         req.flash("error", "Access denied.");
         return res.redirect("/");

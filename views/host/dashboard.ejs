@@ -1,0 +1,51 @@
+<section class="host-page">
+    <header class="host-header">
+        <div class="host-header-text">
+            <span class="host-eyebrow">Host Dashboard</span>
+            <h1 class="host-title">My Listings</h1>
+            <p class="host-subtitle">
+                <% if (listings.length === 1) { %>
+                    You have 1 property listed on Stayora.
+                <% } else { %>
+                    You have <%= listings.length %> properties listed on Stayora.
+                <% } %>
+            </p>
+        </div>
+
+        <a href="/host/listings/new" class="host-new-btn">+ New Listing</a>
+    </header>
+
+    <% if (listings.length === 0) { %>
+        <div class="host-empty">
+            <h2>No listings yet</h2>
+            <p>Start hosting on Stayora by creating your first property listing.</p>
+            <a href="/host/listings/new" class="host-new-btn">+ New Listing</a>
+        </div>
+    <% } else { %>
+        <div class="listings-grid host-listings-grid">
+            <% for (let item of listings) { %>
+                <article class="listing-card host-listing-card">
+                    <div class="listing-img-box">
+                        <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img">
+                        <span class="listing-type"><%= item.PROPERTY_TYPE %></span>
+                        <span class="host-status-badge host-status-<%= item.verification_status %>">
+                            <%= item.verification_status %>
+                        </span>
+                    </div>
+
+                    <div class="listing-info">
+                        <h3 class="listing-title"><%= item.title %></h3>
+                        <p class="listing-location"><%= item.city %>, <%= item.state %></p>
+                        <div class="host-card-meta">
+                            <p class="listing-price">From &#8377;<%= item.price_per_night %> <span>/ night</span></p>
+                            <span class="host-avail-pill host-avail-<%= item.AVAILABILITY_STATUS %>">
+                                <%= item.AVAILABILITY_STATUS %>
+                            </span>
+                        </div>
+                        <a href="/host/listings/<%= item.ID %>" class="view-more-btn">View More</a>
+                    </div>
+                </article>
+            <% } %>
+        </div>
+    <% } %>
+</section>

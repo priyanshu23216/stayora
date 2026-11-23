@@ -1,0 +1,153 @@
+<section class="host-page host-form-page">
+    <div class="host-breadcrumb">
+        <a href="/host/listings/<%= property.ID %>" class="host-back-link">&larr; Back to <%= property.title %></a>
+    </div>
+
+    <header class="host-header host-header-stack">
+        <div class="host-header-text">
+            <span class="host-eyebrow">Edit Room</span>
+            <h1 class="host-title"><%= room.ROOM_TYPE %></h1>
+            <p class="host-subtitle">Update room details, pricing, photos, or amenities for <strong><%= property.title %></strong>.</p>
+        </div>
+    </header>
+
+    <form
+        action="/host/listings/<%= property.ID %>/rooms/<%= room.ID %>?_method=PUT"
+        method="POST"
+        enctype="multipart/form-data"
+        class="host-form"
+        id="roomForm"
+    >
+        <!-- 1. Room Details -->
+        <div class="host-card">
+            <h2 class="host-card-title">Room Details</h2>
+
+            <div class="host-field-grid">
+                <div class="host-field host-field-full">
+                    <label for="roomType">Room Name</label>
+                    <input
+                        type="text"
+                        id="roomType"
+                        name="roomType"
+                        value="<%= room.ROOM_TYPE %>"
+                        minlength="3"
+                        maxlength="100"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="pricePerNight">Price per Night (&#8377;)</label>
+                    <input
+                        type="number"
+                        id="pricePerNight"
+                        name="pricePerNight"
+                        value="<%= room.PRICE_PER_NIGHT %>"
+                        min="100"
+                        step="50"
+                        required
+                    >
+                </div>
+
+                <div class="host-field">
+                    <label for="capacity">Max Guests per Room</label>
+                    <input
+                        type="number"
+                        id="capacity"
+                        name="capacity"
+                        value="<%= room.CAPACITY %>"
+                        min="1"
+                        max="20"
+                        required
+                    >
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="totalRooms">Number of Rooms of This Type</label>
+                    <input
+                        type="number"
+                        id="totalRooms"
+                        name="totalRooms"
+                        value="<%= room.TOTAL_ROOMS %>"
+                        min="1"
+                        max="200"
+                        required
+                    >
+                </div>
+
+                <div class="host-field host-field-full">
+                    <label for="description">Room Description</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        minlength="10"
+                        required
+                    ><%= room.DESCRIPTION %></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Room Photos -->
+        <div class="host-card">
+            <h2 class="host-card-title">Room Photos</h2>
+            <p class="host-card-hint">Leave empty to keep existing photos, or upload up to 4 additional photos (max 5 MB each).</p>
+
+            <div class="host-field-grid">
+                <% if (roomImages && roomImages.length > 0) { %>
+                    <div class="host-field host-field-full">
+                        <label>Current Room Photos</label>
+                        <div class="host-preview-grid">
+                            <% for (let img of roomImages) { %>
+                                <img src="<%= img.IMAGE_URL %>" alt="<%= room.ROOM_TYPE %> photo">
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+
+                <div class="host-field host-field-full">
+                    <label for="roomImages">Add More Room Photos <span class="host-optional">(Optional, up to 4)</span></label>
+                    <input
+                        type="file"
+                        id="roomImages"
+                        name="roomImages"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        class="host-file-input"
+                        multiple
+                    >
+                    <div id="roomPreview" class="host-preview-grid" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Room Amenities -->
+        <% if (amenities && amenities.length > 0) { %>
+            <div class="host-card">
+                <h2 class="host-card-title">Room Amenities</h2>
+                <p class="host-card-hint">Update the amenities available inside this room.</p>
+
+                <div class="host-amenities-grid">
+                    <% for (let amenity of amenities) { %>
+                        <label class="host-amenity-chip">
+                            <input
+                                type="checkbox"
+                                name="amenities"
+                                value="<%= amenity.ID %>"
+                                <% if (selectedAmenityIds.includes(amenity.ID)) { %>checked<% } %>
+                            >
+                            <span><%= amenity.NAME %></span>
+                        </label>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- Submit Actions -->
+        <div class="host-form-actions">
+            <a href="/host/listings/<%= property.ID %>" class="host-cancel-btn">Cancel</a>
+            <button type="submit" class="host-submit-btn" id="submitRoomBtn">Save Room Changes</button>
+        </div>
+    </form>
+</section>
+
+<script src="/js/hostRoomForm.js" defer></script>
