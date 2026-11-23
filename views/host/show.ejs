@@ -36,6 +36,13 @@
         </div>
     </header>
 
+    <!-- Rejection Feedback Banner (visible to host if admin rejected this listing) -->
+    <% if (property.verification_status === "rejected" && property.rejection_reason) { %>
+        <div class="admin-rejection-banner">
+            <strong>Listing Rejected by Stayora Review:</strong> <%= property.rejection_reason %>
+        </div>
+    <% } %>
+
     <!-- Cover Photo & Gallery -->
     <div class="host-media-section">
         <div class="host-cover-wrap">

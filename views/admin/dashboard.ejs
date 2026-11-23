@@ -1,0 +1,120 @@
+<section class="admin-page">
+    <!-- 1. Header -->
+    <header class="admin-header">
+        <div class="admin-header-text">
+            <span class="admin-eyebrow">Admin Panel</span>
+            <h1 class="admin-title">Property Moderation</h1>
+            <p class="admin-subtitle">Review, approve, or reject host listings across Stayora.</p>
+        </div>
+    </header>
+
+    <!-- 2. KPI Summary Cards -->
+    <div class="admin-kpi-grid">
+        <a href="/admin/dashboard?status=pending" class="admin-kpi-card admin-kpi-pending">
+            <span class="admin-kpi-label">Pending Review</span>
+            <span class="admin-kpi-value"><%= stats.pending %></span>
+        </a>
+
+        <a href="/admin/dashboard?status=approved" class="admin-kpi-card admin-kpi-approved">
+            <span class="admin-kpi-label">Approved Stays</span>
+            <span class="admin-kpi-value"><%= stats.approved %></span>
+        </a>
+
+        <a href="/admin/dashboard?status=rejected" class="admin-kpi-card admin-kpi-rejected">
+            <span class="admin-kpi-label">Rejected Stays</span>
+            <span class="admin-kpi-value"><%= stats.rejected %></span>
+        </a>
+
+        <div class="admin-kpi-card">
+            <span class="admin-kpi-label">Total Bookings</span>
+            <span class="admin-kpi-value"><%= stats.bookings %></span>
+        </div>
+    </div>
+
+    <!-- 3. Apple Segmented Filter Bar -->
+    <nav class="admin-tabs-wrap" aria-label="Filter listings by verification status">
+        <div class="admin-tabs">
+            <a
+                href="/admin/dashboard"
+                class="admin-tab <% if (status === 'all') { %>is-active<% } %>"
+            >
+                All <span><%= stats.all %></span>
+            </a>
+
+            <a
+                href="/admin/dashboard?status=pending"
+                class="admin-tab <% if (status === 'pending') { %>is-active<% } %>"
+            >
+                Pending <span><%= stats.pending %></span>
+            </a>
+
+            <a
+                href="/admin/dashboard?status=approved"
+                class="admin-tab <% if (status === 'approved') { %>is-active<% } %>"
+            >
+                Approved <span><%= stats.approved %></span>
+            </a>
+
+            <a
+                href="/admin/dashboard?status=rejected"
+                class="admin-tab <% if (status === 'rejected') { %>is-active<% } %>"
+            >
+                Rejected <span><%= stats.rejected %></span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 4. Listings Grid -->
+    <% if (listings.length === 0) { %>
+        <div class="admin-empty">
+            <h2>No properties in this tab</h2>
+            <p>There are currently no listings matching this verification status.</p>
+            <% if (status !== "all") { %>
+                <a href="/admin/dashboard" class="admin-primary-btn">View All Properties</a>
+            <% } %>
+        </div>
+    <% } else { %>
+        <div class="listings-grid admin-listings-grid">
+            <% for (let item of listings) { %>
+                <article class="listing-card admin-listing-card">
+                    <div class="listing-img-box">
+                        <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img">
+                        <span class="listing-type"><%= item.PROPERTY_TYPE %></span>
+                        <span class="host-status-badge host-status-<%= item.verification_status %>">
+                            <%= item.verification_status %>
+                        </span>
+                    </div>
+
+                    <div class="listing-info">
+                        <h3 class="listing-title"><%= item.title %></h3>
+                        <p class="listing-location"><%= item.city %>, <%= item.state %></p>
+                        <p class="admin-card-host">Host: <strong><%= item.host_name %></strong></p>
+                        <p class="listing-price">From &#8377;<%= item.price_per_night %> <span>/ night</span></p>
+                        <a href="/admin/listings/<%= item.ID %>" class="view-more-btn">Review Property</a>
+                    </div>
+                </article>
+            <% } %>
+        </div>
+
+        <!-- 5. Pagination -->
+        <nav class="pagination admin-pagination" aria-label="Admin listings pagination">
+            <% if (currentPage > 1) { %>
+                <% if (status === "all") { %>
+                    <a href="/admin/dashboard?page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+                <% } else { %>
+                    <a href="/admin/dashboard?status=<%= status %>&page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+                <% } %>
+            <% } %>
+
+            <span class="pagination-info">Page <%= currentPage %> of <%= totalPages %></span>
+
+            <% if (currentPage < totalPages) { %>
+                <% if (status === "all") { %>
+                    <a href="/admin/dashboard?page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+                <% } else { %>
+                    <a href="/admin/dashboard?status=<%= status %>&page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+                <% } %>
+            <% } %>
+        </nav>
+    <% } %>
+</section>

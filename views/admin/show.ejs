@@ -1,0 +1,276 @@
+<section class="admin-page">
+    <div class="host-breadcrumb">
+        <a href="/admin/dashboard" class="host-back-link">&larr; Back to Admin Dashboard</a>
+    </div>
+
+    <!-- 1. Header with Property Info & Contextual Approve / Reject Actions -->
+    <header class="host-header">
+        <div class="host-header-text">
+            <div class="host-pill-row">
+                <span class="host-eyebrow"><%= property.PROPERTY_TYPE %></span>
+                <span class="host-inline-status host-status-<%= property.verification_status %>">
+                    <%= property.verification_status %>
+                </span>
+                <span class="host-avail-pill host-avail-<%= property.AVAILABILITY_STATUS %>">
+                    <%= property.AVAILABILITY_STATUS %>
+                </span>
+            </div>
+            <h1 class="host-title"><%= property.title %></h1>
+            <p class="host-subtitle"><%= property.location %>, <%= property.city %>, <%= property.state %> &mdash; <%= property.pincode %></p>
+        </div>
+
+        <div class="host-action-group">
+            <% if (property.verification_status !== "approved") { %>
+                <form
+                    action="/admin/listings/<%= property.ID %>/approve?_method=PATCH"
+                    method="POST"
+                    class="host-delete-form"
+                >
+                    <button type="submit" class="admin-approve-btn">Approve Property</button>
+                </form>
+            <% } %>
+
+            <% if (property.verification_status !== "rejected") { %>
+                <button
+                    type="button"
+                    class="host-delete-btn"
+                    id="openRejectModalBtn"
+                >
+                    <% if (property.verification_status === "approved") { %>
+                        Reject / Unlist
+                    <% } else { %>
+                        Reject Property
+                    <% } %>
+                </button>
+            <% } %>
+        </div>
+    </header>
+
+    <!-- Rejection Reason Banner (shown if currently rejected) -->
+    <% if (property.verification_status === "rejected" && property.rejection_reason) { %>
+        <div class="admin-rejection-banner">
+            <strong>Rejection Reason:</strong> <%= property.rejection_reason %>
+        </div>
+    <% } %>
+
+    <!-- 2. Cover Photo & Gallery -->
+    <div class="host-media-section">
+        <div class="host-cover-wrap">
+            <img src="<%= property.image %>" alt="<%= property.title %>" class="host-cover-img">
+        </div>
+
+        <% if (propertyImages && propertyImages.length > 0) { %>
+            <div class="host-gallery-strip">
+                <% for (let img of propertyImages) { %>
+                    <img src="<%= img.IMAGE_URL %>" alt="<%= property.title %> gallery photo" class="host-gallery-thumb">
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- 3. Property Details, Summary & Host Verification Card -->
+    <div class="host-detail-grid">
+        <div class="host-card">
+            <h2 class="host-card-title">About This Property</h2>
+            <p class="host-description"><%= property.description %></p>
+
+            <% if (propertyAmenities && propertyAmenities.length > 0) { %>
+                <h3 class="host-subheading">Amenities</h3>
+                <div class="host-amenities-grid">
+                    <% for (let amenity of propertyAmenities) { %>
+                        <span class="host-amenity-tag"><%= amenity.NAME %></span>
+                    <% } %>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="admin-side-stack">
+            <!-- Host Information & Verify Host Toggle -->
+            <% if (host) { %>
+                <div class="host-card">
+                    <div class="admin-host-card-top">
+                        <h2 class="host-card-title">Host Details</h2>
+                        <% if (host.is_host_verified === 1) { %>
+                            <span class="admin-verified-pill">Verified Host</span>
+                        <% } else { %>
+                            <span class="admin-unverified-pill">Unverified</span>
+                        <% } %>
+                    </div>
+
+                    <div class="host-spec-list">
+                        <div class="host-spec-row">
+                            <span class="host-spec-key">Name</span>
+                            <span class="host-spec-val"><%= host.NAME %></span>
+                        </div>
+                        <div class="host-spec-row">
+                            <span class="host-spec-key">Email</span>
+                            <span class="host-spec-val"><%= host.EMAIL %></span>
+                        </div>
+                    </div>
+
+                    <form
+                        action="/admin/hosts/<%= host.ID %>/verify?_method=PATCH"
+                        method="POST"
+                        class="admin-verify-form"
+                    >
+                        <input type="hidden" name="propertyId" value="<%= property.ID %>">
+                        <% if (host.is_host_verified === 1) { %>
+                            <button type="submit" class="admin-unverify-btn">Remove Verified Badge</button>
+                        <% } else { %>
+                            <button type="submit" class="admin-verify-btn">Mark as Verified Host</button>
+                        <% } %>
+                    </form>
+                </div>
+            <% } %>
+
+            <!-- Property Specs Summary -->
+            <div class="host-card">
+                <h2 class="host-card-title">Property Summary</h2>
+                <div class="host-spec-list">
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Base Price</span>
+                        <span class="host-spec-val">&#8377;<%= property.price_per_night %> / night</span>
+                    </div>
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Total Rooms</span>
+                        <span class="host-spec-val"><%= property.total_rooms %></span>
+                    </div>
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Max Guests</span>
+                        <span class="host-spec-val"><%= property.max_guests %></span>
+                    </div>
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Bathrooms</span>
+                        <span class="host-spec-val"><%= property.BATHROOMS %></span>
+                    </div>
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Check-in</span>
+                        <span class="host-spec-val"><%= String(property.check_in_time).slice(0, 5) %></span>
+                    </div>
+                    <div class="host-spec-row">
+                        <span class="host-spec-key">Check-out</span>
+                        <span class="host-spec-val"><%= String(property.check_out_time).slice(0, 5) %></span>
+                    </div>
+                    <div class="host-spec-row host-spec-row-col">
+                        <span class="host-spec-key">Cancellation Policy</span>
+                        <span class="host-spec-val"><%= property.cancellation_policy %></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Rooms Listed Under This Property -->
+    <section class="host-card host-rooms-section">
+        <div class="host-section-header">
+            <div>
+                <h2 class="host-card-title">Rooms</h2>
+                <p class="host-card-hint">
+                    <% if (rooms.length === 1) { %>
+                        1 room type listed under this property.
+                    <% } else { %>
+                        <%= rooms.length %> room types listed under this property.
+                    <% } %>
+                </p>
+            </div>
+        </div>
+
+        <% if (rooms.length === 0) { %>
+            <div class="host-rooms-empty">
+                <p>This host has not added any rooms to this property yet.</p>
+            </div>
+        <% } else { %>
+            <div class="host-rooms-list">
+                <% for (let room of rooms) { %>
+                    <article class="host-room-card">
+                        <div class="host-room-media">
+                            <% if (room.images && room.images.length > 0) { %>
+                                <img src="<%= room.images[0].IMAGE_URL %>" alt="<%= room.ROOM_TYPE %>" class="host-room-img">
+                            <% } else { %>
+                                <img src="<%= property.image %>" alt="<%= room.ROOM_TYPE %>" class="host-room-img">
+                            <% } %>
+                        </div>
+
+                        <div class="host-room-body">
+                            <div class="host-room-top">
+                                <div>
+                                    <h3 class="host-room-name"><%= room.ROOM_TYPE %></h3>
+                                    <p class="host-room-price">&#8377;<%= room.PRICE_PER_NIGHT %> <span>/ night</span></p>
+                                </div>
+                            </div>
+
+                            <p class="host-room-desc"><%= room.DESCRIPTION %></p>
+
+                            <div class="host-room-meta">
+                                <span class="host-room-badge">Up to <%= room.CAPACITY %> guests</span>
+                                <span class="host-room-badge"><%= room.TOTAL_ROOMS %> unit(s)</span>
+                            </div>
+
+                            <% if (room.amenities && room.amenities.length > 0) { %>
+                                <div class="host-room-amenities">
+                                    <% for (let item of room.amenities) { %>
+                                        <span class="host-amenity-tag host-amenity-tag-sm"><%= item.NAME %></span>
+                                    <% } %>
+                                </div>
+                            <% } %>
+                        </div>
+                    </article>
+                <% } %>
+            </div>
+        <% } %>
+    </section>
+</section>
+
+<!-- Apple-Like Reject Reason Modal -->
+<div
+    class="apple-modal-backdrop"
+    id="rejectPropertyModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="rejectModalTitle"
+    aria-describedby="rejectModalDesc"
+    hidden
+>
+    <div class="apple-modal admin-reject-modal">
+        <div class="apple-modal-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        </div>
+
+        <h2 class="apple-modal-title" id="rejectModalTitle">Reject Property?</h2>
+        <p class="apple-modal-desc" id="rejectModalDesc">
+            Share a clear reason so the host knows what to fix before resubmitting.
+        </p>
+
+        <form
+            action="/admin/listings/<%= property.ID %>/reject?_method=PATCH"
+            method="POST"
+            class="admin-reject-form"
+            id="rejectPropertyForm"
+        >
+            <div class="admin-reject-field">
+                <label for="rejectionReason">Rejection Reason</label>
+                <textarea
+                    id="rejectionReason"
+                    name="rejectionReason"
+                    rows="4"
+                    minlength="5"
+                    maxlength="500"
+                    placeholder="e.g. Cover photos are blurry and address pincode does not match the city."
+                    required
+                ></textarea>
+                <span class="admin-char-count" id="rejectCharCount">0 / 500</span>
+            </div>
+
+            <div class="apple-modal-actions">
+                <button type="button" class="apple-modal-cancel" id="rejectModalCancel">Cancel</button>
+                <button type="submit" class="apple-modal-confirm" id="rejectModalSubmit">Confirm Reject</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/adminReview.js" defer></script>

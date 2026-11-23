@@ -108,9 +108,10 @@ function formatSqlTime(timeStr) {
     return timeStr;
 }
 
-// Helper 5: Clear Redis cache for this property and cached /listings pages
+// Helper 5: Clear Redis cache for this property, categories page, and cached /listings pages
 async function clearListingCache(propertyId) {
     await redis.del(`property:${propertyId}`);
+    await redis.del("categories:all");
 
     const listKeys = await redis.keys("listingsBy*");
     if (listKeys.length > 0) {

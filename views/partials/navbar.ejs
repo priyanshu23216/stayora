@@ -65,10 +65,12 @@
         <div class="nav-menu" id="navMenu">
             <a href="/listings" class="nav-link">Stays</a>
 
-            <% if (!currentUser || currentUser.ROLE !== 'host') { %>
-                <a href="/listings/update/host" class="nav-host-btn">+ Become a Host</a>
-            <% } else { %>
+            <% if (currentUser && currentUser.ROLE === 'admin') { %>
+                <a href="/admin/dashboard" class="nav-dashboard-btn">Admin Panel</a>
+            <% } else if (currentUser && currentUser.ROLE === 'host') { %>
                 <a href="/host/dashboard" class="nav-dashboard-btn">My Dashboard</a>
+            <% } else { %>
+                <a href="/listings/update/host" class="nav-host-btn">+ Become a Host</a>
             <% } %>
 
             <% if (currentUser) { %>

@@ -200,3 +200,22 @@ export const roomSchema = z.object({
         ])
         .optional(),
 });
+
+// to validate admin rejection reason when rejecting a property
+export const rejectPropertySchema = z.object({
+    rejectionReason: z
+        .string()
+        .trim()
+        .min(5, "Please provide a clear rejection reason (at least 5 characters).")
+        .max(500, "Rejection reason cannot exceed 500 characters.")
+        .regex(/^[^<>]+$/, "Rejection reason cannot contain < or > characters."),
+});
+
+// to validate optional propertyId passed when admin verifies a host
+export const hostVerifySchema = z.object({
+    propertyId: z
+        .string()
+        .trim()
+        .regex(uuidRegex, "Invalid property ID.")
+        .optional(),
+});
