@@ -12,6 +12,7 @@
     </header>
 
     <form action="/host/listings" method="POST" enctype="multipart/form-data" class="host-form" id="newListingForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <!-- 1. Basic Information -->
         <div class="host-card">
             <h2 class="host-card-title">Basic Information</h2>

@@ -6,15 +6,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (roomInput && roomPreview) {
         roomInput.addEventListener("change", () => {
-            roomPreview.innerHTML = "";
+            roomPreview.textContent = "";
 
             if (roomInput.files.length > 4) {
-                alert("You can upload up to 4 room images at a time. Only the first 4 will be previewed.");
+                alert("You can upload up to 4 room images at a time. Only the first 4 have been kept.");
+                const dt = new DataTransfer();
+                Array.from(roomInput.files)
+                    .slice(0, 4)
+                    .forEach((f) => dt.items.add(f));
+                roomInput.files = dt.files;
             }
 
             const selected = Array.from(roomInput.files).slice(0, 4);
 
-            for (let file of selected) {
+            for (const file of selected) {
                 if (!file.type.startsWith("image/")) continue;
 
                 const reader = new FileReader();

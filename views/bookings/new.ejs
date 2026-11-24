@@ -14,6 +14,7 @@
          Mobile order: 1) Trip details -> 2) Price details -> 3) Confirm Booking
          Desktop order: Left (Trip details + Confirm Booking) | Right (Sticky Price details) -->
     <form action="/bookings/new/<%= room.ID %>" method="POST" class="booking-grid" id="bookingForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
         <!-- 1. Trip Details Card -->
         <section class="booking-form-card">

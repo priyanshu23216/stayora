@@ -1,21 +1,74 @@
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import db from "../config/db.js";
-import { isLoggedIn } from "../middlewares/auth.js";
+import { isLoggedIn, isGuest, isValidUuid } from "../middlewares/auth.js";
 import { sendBookingConfirmation } from "../utils/mailer.js";
+import { bookingSchema } from "../utils/validator.js";
+import { atomicIncrWithExpiry } from "../utils/redisHelpers.js";
 
 const bookingRouter = express.Router();
 
-// Protect all /bookings/* routes: user must be logged in to book a room
-bookingRouter.use(isLoggedIn);
+const MAX_STAY_NIGHTS = 60;
+const MAX_ADVANCE_BOOKING_DAYS = 365;
+const MAX_ACTIVE_BOOKINGS_PER_USER = 15;
+
+// Protect all /bookings/* routes: user must be logged in as a guest or host
+bookingRouter.use(isLoggedIn, isGuest);
+
+function formatLocalIsoDate(dateObj) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+// Computes peak concurrent occupancy on any single night in [checkIn, checkOut)
+export function getPeakNightlyOccupancy(overlappingBookings, checkInStr, nights) {
+    const startMs = new Date(`${checkInStr}T00:00:00Z`).getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
+    let maxOccupied = 0;
+
+    for (let i = 0; i < nights; i++) {
+        const nightDateStr = new Date(startMs + i * dayMs).toISOString().slice(0, 10);
+        let occupiedThisNight = 0;
+        for (const b of overlappingBookings) {
+            if (b.CHECK_IN_DATE <= nightDateStr && b.CHECK_OUT_DATE > nightDateStr) {
+                occupiedThisNight++;
+            }
+        }
+        if (occupiedThisNight > maxOccupied) {
+            maxOccupied = occupiedThisNight;
+        }
+    }
+
+    return maxOccupied;
+}
+
+// Atomic booking rate limiter (stops inventory-exhaustion flooding)
+async function bookingRateLimiter(req, res, next) {
+    try {
+        const key = `booking:create:${req.user.ID}:${req.ip}`;
+        const count = await atomicIncrWithExpiry(key, 900);
+        if (count > 10) {
+            req.flash("error", "Too many booking attempts. Please wait 15 minutes before trying again.");
+            return res.redirect("/listings");
+        }
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
 
 // 1. GET /bookings/new/:roomId -> Show booking form page for a specific room
 bookingRouter.get("/new/:roomId", async (req, res, next) => {
     try {
         const roomId = req.params.roomId;
+        if (!isValidUuid(roomId)) {
+            req.flash("error", "Room not found.");
+            return res.redirect("/listings");
+        }
 
-        // Fetch room details along with its property details
-        const roomResult = await db.execute(
+        const [roomRows] = await db.execute(
             `SELECT rooms.*,
                     properties.ID AS property_id,
                     properties.title AS property_title,
@@ -34,7 +87,6 @@ bookingRouter.get("/new/:roomId", async (req, res, next) => {
              WHERE rooms.ID = ?`,
             [roomId]
         );
-        const roomRows = roomResult[0];
 
         if (roomRows.length === 0) {
             req.flash("error", "Room not found.");
@@ -43,75 +95,61 @@ bookingRouter.get("/new/:roomId", async (req, res, next) => {
 
         const room = roomRows[0];
 
-        // Check if property is approved and available
         if (room.verification_status !== "approved") {
             req.flash("error", "This property is not available for booking.");
             return res.redirect("/listings");
         }
 
-        if (room.AVAILABILITY_STATUS !== "available") {
+        if (room.AVAILABILITY_STATUS !== "available" || room.TOTAL_ROOMS < 1) {
             req.flash("error", "This property is currently unavailable for booking.");
             return res.redirect(`/listings/${room.property_id}`);
         }
 
-        // Prevent host from booking their own property
-        if (req.user && room.HOST_ID === req.user.ID) {
+        if (room.HOST_ID === req.user.ID) {
             req.flash("error", "You cannot book your own property.");
             return res.redirect(`/listings/${room.property_id}`);
         }
 
-        // Fetch 1 cover photo for this room (fallback to property image if none)
-        const imageResult = await db.execute(
+        const [imageRows] = await db.execute(
             `SELECT IMAGE_URL FROM room_images WHERE ROOM_ID = ? LIMIT 1`,
             [roomId]
         );
-        const imageRows = imageResult[0];
 
-        let roomImage = room.property_image;
-        if (imageRows.length > 0) {
-            roomImage = imageRows[0].IMAGE_URL;
-        }
-
-        // Today's date in YYYY-MM-DD format for calendar min attribute
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const day = String(now.getDate()).padStart(2, "0");
-        const today = `${year}-${month}-${day}`;
+        const roomImage = imageRows.length > 0 ? imageRows[0].IMAGE_URL : room.property_image;
+        const today = formatLocalIsoDate(new Date());
 
         return res.render("bookings/new", {
             title: `Book ${room.ROOM_TYPE}`,
-            room: room,
-            roomImage: roomImage,
-            today: today
+            room,
+            roomImage,
+            today,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 2. POST /bookings/new/:roomId -> Validate, lock room row, check availability & confirm booking
-bookingRouter.post("/new/:roomId", async (req, res, next) => {
+// 2. POST /bookings/new/:roomId -> Validate, lock room row, check peak nightly occupancy & confirm booking
+bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) => {
     const roomId = req.params.roomId;
-    const checkIn = req.body.checkIn;
-    const checkOut = req.body.checkOut;
-    const guests = parseInt(req.body.guests);
+    if (!isValidUuid(roomId)) {
+        req.flash("error", "Invalid room selected.");
+        return res.redirect("/listings");
+    }
 
-    // Step 1: Basic form validation before touching database
-    if (!checkIn || !checkOut || !guests) {
-        req.flash("error", "Please select check-in date, check-out date, and guests.");
+    // Step 1: Strict Zod validation (rejects rollover dates, non-integers, HPP arrays)
+    const parsed = bookingSchema.safeParse(req.body);
+    if (!parsed.success) {
+        req.flash("error", parsed.error.issues[0].message);
         return res.redirect(`/bookings/new/${roomId}`);
     }
 
-    const checkInDate = new Date(checkIn + "T00:00:00");
-    const checkOutDate = new Date(checkOut + "T00:00:00");
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
+    const { checkIn, checkOut, guests } = parsed.data;
 
-    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-        req.flash("error", "Please enter valid dates.");
-        return res.redirect(`/bookings/new/${roomId}`);
-    }
+    const now = new Date();
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const checkInDate = new Date(`${checkIn}T00:00:00`);
+    const checkOutDate = new Date(`${checkOut}T00:00:00`);
 
     if (checkInDate < todayDate) {
         req.flash("error", "Check-in date cannot be in the past.");
@@ -123,36 +161,40 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
         return res.redirect(`/bookings/new/${roomId}`);
     }
 
-    if (guests < 1) {
-        req.flash("error", "At least 1 guest is required.");
+    const dayMs = 1000 * 60 * 60 * 24;
+    const nights = Math.round((checkOutDate - checkInDate) / dayMs);
+    const daysInAdvance = Math.round((checkInDate - todayDate) / dayMs);
+
+    if (nights > MAX_STAY_NIGHTS) {
+        req.flash("error", `Stays cannot exceed ${MAX_STAY_NIGHTS} nights per booking.`);
         return res.redirect(`/bookings/new/${roomId}`);
     }
 
-    // Calculate total number of nights
-    const diffInMs = checkOutDate - checkInDate;
-    const nights = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+    if (daysInAdvance > MAX_ADVANCE_BOOKING_DAYS) {
+        req.flash("error", `Bookings can only be made up to ${MAX_ADVANCE_BOOKING_DAYS} days in advance.`);
+        return res.redirect(`/bookings/new/${roomId}`);
+    }
 
-    // Step 2: Borrow 1 dedicated connection from pool for the transaction
-    const connection = await db.getConnection();
-
+    let connection;
     try {
-        // Step 3: Start SQL Transaction
+        connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // Step 4: Fetch room + property and LOCK this room row (FOR UPDATE)
-        const roomResult = await connection.execute(
+        // Step 2: Lock room row FOR UPDATE to serialize concurrent bookings for this room
+        const [roomRows] = await connection.execute(
             `SELECT rooms.*,
                     properties.title AS property_title,
                     properties.AVAILABILITY_STATUS,
                     properties.verification_status,
-                    properties.HOST_ID
+                    properties.HOST_ID,
+                    properties.check_in_time,
+                    properties.cancellation_policy
              FROM rooms
              JOIN properties ON rooms.property_id = properties.ID
              WHERE rooms.ID = ?
              FOR UPDATE`,
             [roomId]
         );
-        const roomRows = roomResult[0];
 
         if (roomRows.length === 0) {
             await connection.rollback();
@@ -162,7 +204,7 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
 
         const room = roomRows[0];
 
-        if (room.verification_status !== "approved" || room.AVAILABILITY_STATUS !== "available") {
+        if (room.verification_status !== "approved" || room.AVAILABILITY_STATUS !== "available" || room.TOTAL_ROOMS < 1) {
             await connection.rollback();
             req.flash("error", "This property is currently not available for booking.");
             return res.redirect(`/listings/${room.property_id}`);
@@ -174,16 +216,58 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
             return res.redirect(`/listings/${room.property_id}`);
         }
 
-        // Step 5: Check guests capacity
+        // Reject same-day booking if check-in time has already passed
+        const checkInParts = String(room.check_in_time || "13:00:00").split(":");
+        const checkInDateTime = new Date(checkInDate.getTime());
+        checkInDateTime.setHours(Number(checkInParts[0]) || 13, Number(checkInParts[1]) || 0, 0, 0);
+        if (now >= checkInDateTime) {
+            await connection.rollback();
+            req.flash("error", "Check-in time for today has already passed. Please select a future date.");
+            return res.redirect(`/bookings/new/${roomId}`);
+        }
+
         if (guests > room.CAPACITY) {
             await connection.rollback();
             req.flash("error", `Maximum ${room.CAPACITY} guests are allowed in this room.`);
             return res.redirect(`/bookings/new/${roomId}`);
         }
 
-        // Step 6: Count overlapping active bookings for this room and selected dates
-        const overlapResult = await connection.execute(
-            `SELECT COUNT(*) AS bookedCount
+        // Step 3: Cap total active future bookings per user (prevents inventory-exhaustion DoS)
+        const [userActiveRows] = await connection.execute(
+            `SELECT COUNT(*) AS activeCount
+             FROM bookings
+             WHERE USER_ID = ?
+               AND STATUS IN ('pending', 'confirmed')
+               AND CHECK_OUT_DATE >= ?`,
+            [req.user.ID, formatLocalIsoDate(todayDate)]
+        );
+        if (Number(userActiveRows[0].activeCount) >= MAX_ACTIVE_BOOKINGS_PER_USER) {
+            await connection.rollback();
+            req.flash("error", `You already have ${MAX_ACTIVE_BOOKINGS_PER_USER} active bookings. Please complete or cancel one before booking more.`);
+            return res.redirect("/guest/dashboard");
+        }
+
+        // Step 4: Guard against accidental double-submit (identical booking created within last 2 minutes)
+        const [dupRows] = await connection.execute(
+            `SELECT ID FROM bookings
+             WHERE USER_ID = ?
+               AND ROOM_ID = ?
+               AND CHECK_IN_DATE = ?
+               AND CHECK_OUT_DATE = ?
+               AND STATUS IN ('pending', 'confirmed')
+               AND CREATED_AT >= (NOW() - INTERVAL 2 MINUTE)
+             LIMIT 1`,
+            [req.user.ID, roomId, checkIn, checkOut]
+        );
+        if (dupRows.length > 0) {
+            await connection.rollback();
+            req.flash("error", "A matching booking was just submitted. Please check your dashboard.");
+            return res.redirect("/guest/dashboard");
+        }
+
+        // Step 5: Accurate peak nightly occupancy check across every night in [checkIn, checkOut)
+        const [overlappingBookings] = await connection.execute(
+            `SELECT CHECK_IN_DATE, CHECK_OUT_DATE
              FROM bookings
              WHERE ROOM_ID = ?
                AND STATUS IN ('pending', 'confirmed')
@@ -191,64 +275,66 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
                AND CHECK_OUT_DATE > ?`,
             [roomId, checkOut, checkIn]
         );
-        const bookedCount = overlapResult[0][0].bookedCount;
 
-        // Calculate remaining available rooms
-        const availableRooms = room.TOTAL_ROOMS - bookedCount;
-
-        if (availableRooms < 1) {
+        const peakOccupied = getPeakNightlyOccupancy(overlappingBookings, checkIn, nights);
+        if (peakOccupied >= Number(room.TOTAL_ROOMS)) {
             await connection.rollback();
-            req.flash("error", "Sorry, this room is sold out for the selected dates. Please try different dates.");
+            req.flash("error", "Sorry, this room is sold out for one or more of the selected dates. Please try different dates.");
             return res.redirect(`/bookings/new/${roomId}`);
         }
 
-        // Step 7: Calculate total amount securely on backend
-        const totalAmount = nights * Number(room.PRICE_PER_NIGHT);
+        // Step 6: Calculate total amount securely on backend & snapshot cancellation policy
+        const totalAmount = Number((nights * Number(room.PRICE_PER_NIGHT)).toFixed(2));
         const bookingId = uuidv4();
+        const policySnapshot =
+            room.cancellation_policy || "Flexible — Free cancellation up to 24 hours before check-in";
 
-        // Step 8: Insert confirmed booking into database
         await connection.execute(
-            `INSERT INTO bookings (ID, USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS, TOTAL_AMOUNT, STATUS)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [bookingId, req.user.ID, roomId, checkIn, checkOut, guests, totalAmount, "confirmed"]
+            `INSERT INTO bookings (ID, USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS, TOTAL_AMOUNT, STATUS, cancellation_policy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [bookingId, req.user.ID, roomId, checkIn, checkOut, guests, totalAmount, "confirmed", policySnapshot]
         );
 
-        // Step 9: Commit transaction (saves booking permanently and releases row lock)
         await connection.commit();
 
-        // Step 10: Fetch host details and send booking confirmation email to the guest
-        try {
-            const hostResult = await db.execute(
-                `SELECT NAME, EMAIL FROM users WHERE ID = ?`,
-                [room.HOST_ID]
-            );
-            const host = hostResult[0][0];
-
-            await sendBookingConfirmation(req.user.EMAIL, {
-                bookingId: bookingId,
-                hotelName: room.property_title,
-                roomType: room.ROOM_TYPE,
-                checkIn: checkIn,
-                checkOut: checkOut,
-                guests: guests,
-                totalPrice: totalAmount,
-                hostName: host.NAME,
-                hostEmail: host.EMAIL,
+        // Step 7: Send confirmation email asynchronously so SMTP never delays/fails a committed booking
+        db.execute(`SELECT NAME, EMAIL FROM users WHERE ID = ?`, [room.HOST_ID])
+            .then(([hostRows]) => {
+                const host = hostRows[0] || { NAME: "Stayora Host", EMAIL: "support@stayora.com" };
+                return sendBookingConfirmation(req.user.EMAIL, {
+                    bookingId,
+                    hotelName: room.property_title,
+                    roomType: room.ROOM_TYPE,
+                    checkIn,
+                    checkOut,
+                    guests,
+                    totalPrice: totalAmount,
+                    hostName: host.NAME,
+                    hostEmail: host.EMAIL,
+                });
+            })
+            .catch((emailErr) => {
+                console.error("Booking confirmation email error:", emailErr);
             });
-        } catch (emailErr) {
-            // Do not fail the already-committed booking if email delivery fails
-            console.error("Booking confirmation email error:", emailErr);
-        }
 
-        req.flash("success", `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`);
+        req.flash(
+            "success",
+            `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`
+        );
         return res.redirect("/guest/dashboard");
     } catch (err) {
-        // Undo changes and release lock if any unexpected error occurs
-        await connection.rollback();
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rbErr) {
+                console.error("Booking rollback error:", rbErr);
+            }
+        }
         return next(err);
     } finally {
-        // Always return connection back to pool
-        connection.release();
+        if (connection) {
+            connection.release();
+        }
     }
 });
 

@@ -1,6 +1,19 @@
 import "dotenv/config";
 import nodemailer from "nodemailer";
 
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function sanitizeHeaderText(value) {
+    return String(value ?? "").replace(/[\r\n]+/g, " ").trim();
+}
+
 // 1. Gmail transporter configuration
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -12,6 +25,7 @@ const transporter = nodemailer.createTransport({
 
 // 2. OTP Verification Email
 export const sendOtpEmail = async (toEmail, otp) => {
+    const safeOtp = escapeHtml(otp);
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
@@ -46,7 +60,7 @@ export const sendOtpEmail = async (toEmail, otp) => {
                                     <!-- OTP Box -->
                                     <div style="background: #f0f7ff; border: 1.5px dashed #0071e3; border-radius: 10px; padding: 18px 10px; margin: 0 auto 28px; max-width: 300px;">
                                         <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0071e3; display: inline-block;">
-                                            ${otp}
+                                            ${safeOtp}
                                         </span>
                                     </div>
 
@@ -81,10 +95,21 @@ export const sendOtpEmail = async (toEmail, otp) => {
 
 // 3. Booking Confirmation Email
 export const sendBookingConfirmation = async (toEmail, booking) => {
+    const safe = {
+        bookingId: escapeHtml(booking.bookingId),
+        hotelName: escapeHtml(booking.hotelName),
+        roomType: escapeHtml(booking.roomType),
+        checkIn: escapeHtml(booking.checkIn),
+        checkOut: escapeHtml(booking.checkOut),
+        guests: escapeHtml(booking.guests),
+        totalPrice: escapeHtml(booking.totalPrice),
+        hostName: escapeHtml(booking.hostName),
+        hostEmail: escapeHtml(booking.hostEmail),
+    };
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: `Booking Confirmed: ${booking.hotelName} (${booking.bookingId})`,
+        subject: `Booking Confirmed: ${sanitizeHeaderText(booking.hotelName)} (${sanitizeHeaderText(booking.bookingId)})`,
         html: `
         <!DOCTYPE html>
         <html>
@@ -119,7 +144,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                 <td style="padding: 30px 35px 15px;">
                                     <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">You're all set! Pack your bags 🧳</h2>
                                     <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
-                                        Your reservation at <strong>${booking.hotelName}</strong> is confirmed. Below are your booking details:
+                                        Your reservation at <strong>${safe.hotelName}</strong> is confirmed. Below are your booking details:
                                     </p>
                                 </td>
                             </tr>
@@ -130,31 +155,31 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Booking Reference</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 700; color: #111827;" align="right">#${booking.bookingId}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 700; color: #111827;" align="right">#${safe.bookingId}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Hotel</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.hotelName}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.hotelName}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Room Category</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.roomType}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomType}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-In</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkIn}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.checkIn}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-Out</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkOut}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.checkOut}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Guests</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.guests}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.guests}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Total Paid</td>
-                                            <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${booking.totalPrice}</td>
+                                            <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${safe.totalPrice}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -171,12 +196,12 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                         </tr>
                                         <tr>
                                             <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Host Name</td>
-                                            <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.hostName}</td>
+                                            <td style="padding: 12px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.hostName}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 12px 18px; font-size: 14px; color: #6b7280;">Host Email</td>
                                             <td style="padding: 12px 18px; font-size: 14px; font-weight: 600;" align="right">
-                                                <a href="mailto:${booking.hostEmail}" style="color: #0071e3; text-decoration: none;">${booking.hostEmail}</a>
+                                                <a href="mailto:${safe.hostEmail}" style="color: #0071e3; text-decoration: none;">${safe.hostEmail}</a>
                                             </td>
                                         </tr>
                                     </table>
@@ -213,10 +238,21 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
 };
 
 export const sendBookingCancellation = async (toEmail, booking) => {
+    const safe = {
+        bookingId: escapeHtml(booking.bookingId),
+        hotelName: escapeHtml(booking.hotelName),
+        roomType: booking.roomType ? escapeHtml(booking.roomType) : "",
+        checkIn: escapeHtml(booking.checkIn),
+        checkOut: escapeHtml(booking.checkOut),
+        totalPrice: escapeHtml(booking.totalPrice),
+        refundNote: booking.refundNote ? escapeHtml(booking.refundNote) : "",
+        refundAmount: typeof booking.refundAmount === "number" ? booking.refundAmount : null,
+        refundPercent: typeof booking.refundPercent === "number" ? booking.refundPercent : 0,
+    };
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: `Booking Cancelled: ${booking.hotelName} (${booking.bookingId})`,
+        subject: `Booking Cancelled: ${sanitizeHeaderText(booking.hotelName)} (${sanitizeHeaderText(booking.bookingId)})`,
         html: 
 
         `<!DOCTYPE html>
@@ -252,7 +288,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                 <td style="padding: 30px 35px 15px;">
                                     <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">Booking Cancellation Notice</h2>
                                     <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
-                                        Your reservation at <strong>${booking.hotelName}</strong> has been successfully cancelled as requested.
+                                        Your reservation at <strong>${safe.hotelName}</strong> has been successfully cancelled as requested.
                                     </p>
                                 </td>
                             </tr>
@@ -262,8 +298,8 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                     <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 14px 16px; border-radius: 6px;">
                                         <p style="margin: 0; font-size: 13px; line-height: 20px; color: #9a3412;">
                                             💳 <strong>Refund Information:</strong>
-                                            ${booking.refundNote
-                                                ? `${booking.refundNote}${booking.refundAmount > 0 ? " Eligible refunds are processed back to your original payment method within <strong>5–7 business days</strong>." : ""}`
+                                            ${safe.refundNote
+                                                ? `${safe.refundNote}${safe.refundAmount > 0 ? " Eligible refunds are processed back to your original payment method within <strong>5–7 business days</strong>." : ""}`
                                                 : "If you are eligible for a refund, it will be processed back to your original payment method within <strong>5–7 business days</strong>."}
                                         </p>
                                     </div>
@@ -275,34 +311,34 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Booking Reference</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 700; color: #111827;" align="right">#${booking.bookingId}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 700; color: #111827;" align="right">#${safe.bookingId}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Hotel</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.hotelName}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.hotelName}</td>
                                         </tr>
-                                        ${booking.roomType ? `
+                                        ${safe.roomType ? `
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Room Category</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.roomType}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomType}</td>
                                         </tr>` : ''}
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-In</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkIn}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.checkIn}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-Out</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkOut}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.checkOut}</td>
                                         </tr>
                                         <tr>
-                                            <td style="padding: 16px 18px; ${typeof booking.refundAmount === 'number' ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 15px; font-weight: 700; color: #111827;">Total Amount</td>
-                                            <td style="padding: 16px 18px; ${typeof booking.refundAmount === 'number' ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${booking.totalPrice}</td>
+                                            <td style="padding: 16px 18px; ${safe.refundAmount !== null ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 15px; font-weight: 700; color: #111827;">Total Amount</td>
+                                            <td style="padding: 16px 18px; ${safe.refundAmount !== null ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${safe.totalPrice}</td>
                                         </tr>
-                                        ${typeof booking.refundAmount === 'number' ? `
+                                        ${safe.refundAmount !== null ? `
                                         <tr>
                                             <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Eligible Refund</td>
-                                            <td style="padding: 16px 18px; font-size: 17px; font-weight: 800; color: ${booking.refundAmount > 0 ? '#16a34a' : '#6b7280'};" align="right">
-                                                ₹${booking.refundAmount}${booking.refundPercent > 0 ? ` (${booking.refundPercent}%)` : ' (Non-refundable)'}
+                                            <td style="padding: 16px 18px; font-size: 17px; font-weight: 800; color: ${safe.refundAmount > 0 ? '#16a34a' : '#6b7280'};" align="right">
+                                                ₹${escapeHtml(safe.refundAmount)}${safe.refundPercent > 0 ? ` (${escapeHtml(safe.refundPercent)}%)` : ' (Non-refundable)'}
                                             </td>
                                         </tr>` : ''}
                                     </table>
@@ -336,6 +372,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
 
 
 export const resetPassEmail = async (toEmail, message) => {
+    const safeMessage = escapeHtml(message);
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
@@ -366,7 +403,7 @@ export const resetPassEmail = async (toEmail, message) => {
 
                                     <div style="background-color: #f9fafb; border-left: 4px solid #0071e3; border-radius: 6px; padding: 16px 18px; margin-bottom: 22px;">
                                         <p style="margin: 0; font-size: 15px; line-height: 24px; color: #374151;">
-                                            ${message}
+                                            ${safeMessage}
                                         </p>
                                     </div>
 
@@ -463,11 +500,18 @@ export const passChangeAlertEmail = async (toEmail) => {
 
 // 5. Property Approved Email (sent to host when admin approves a listing)
 export const sendPropertyApprovedEmail = async (toEmail, property) => {
-    const listingUrl = `${process.env.APP_URL}/listings/${property.propertyId}`;
+    const listingUrl = `${process.env.APP_URL}/listings/${encodeURIComponent(property.propertyId)}`;
+    const safe = {
+        title: escapeHtml(property.title),
+        hostName: escapeHtml(property.hostName),
+        city: escapeHtml(property.city),
+        state: escapeHtml(property.state),
+        listingUrl: escapeHtml(listingUrl),
+    };
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: `Listing Approved: ${property.title} is now live on Stayora`,
+        subject: `Listing Approved: ${sanitizeHeaderText(property.title)} is now live on Stayora`,
         html: `
         <!DOCTYPE html>
         <html>
@@ -502,7 +546,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                                 <td style="padding: 30px 35px 15px;">
                                     <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">Your listing is live!</h2>
                                     <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
-                                        Hi <strong>${property.hostName}</strong>, great news! Your property <strong>${property.title}</strong> has passed our verification review and is now live for guests to book on Stayora.
+                                        Hi <strong>${safe.hostName}</strong>, great news! Your property <strong>${safe.title}</strong> has passed our verification review and is now live for guests to book on Stayora.
                                     </p>
                                 </td>
                             </tr>
@@ -513,11 +557,11 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Property</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.title}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.title}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Location</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.city}, ${property.state}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.city}, ${safe.state}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; font-size: 14px; color: #6b7280;">Status</td>
@@ -530,7 +574,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                             <!-- Action Link -->
                             <tr>
                                 <td align="center" style="padding: 0 35px 25px;">
-                                    <a href="${listingUrl}" style="display: inline-block; background-color: #0071e3; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
+                                    <a href="${safe.listingUrl}" style="display: inline-block; background-color: #0071e3; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
                                         View Your Live Listing
                                     </a>
                                 </td>
@@ -567,11 +611,19 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
 
 // 6. Property Rejected / Delisted Email (sent to host when admin rejects or delists a listing)
 export const sendPropertyRejectedEmail = async (toEmail, property) => {
-    const editUrl = `${process.env.APP_URL}/host/listings/${property.propertyId}/edit`;
+    const editUrl = `${process.env.APP_URL}/host/listings/${encodeURIComponent(property.propertyId)}/edit`;
+    const safe = {
+        title: escapeHtml(property.title),
+        hostName: escapeHtml(property.hostName),
+        city: escapeHtml(property.city),
+        state: escapeHtml(property.state),
+        rejectionReason: escapeHtml(property.rejectionReason),
+        editUrl: escapeHtml(editUrl),
+    };
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: `Listing Update: ${property.title} was not approved`,
+        subject: `Listing Update: ${sanitizeHeaderText(property.title)} was not approved`,
         html: `
         <!DOCTYPE html>
         <html>
@@ -606,7 +658,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                                 <td style="padding: 30px 35px 15px;">
                                     <h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1f2937;">Listing Review Update</h2>
                                     <p style="margin: 0; font-size: 15px; color: #6b7280; line-height: 22px;">
-                                        Hi <strong>${property.hostName}</strong>, your property <strong>${property.title}</strong> could not be approved (or has been unlisted) after review. Please see the reason below:
+                                        Hi <strong>${safe.hostName}</strong>, your property <strong>${safe.title}</strong> could not be approved (or has been unlisted) after review. Please see the reason below:
                                     </p>
                                 </td>
                             </tr>
@@ -616,7 +668,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                                 <td style="padding: 0 35px 15px;">
                                     <div style="background-color: #fff1f2; border-left: 4px solid #dc2626; padding: 14px 16px; border-radius: 6px;">
                                         <p style="margin: 0; font-size: 14px; line-height: 22px; color: #991b1b;">
-                                            <strong>Reason:</strong> ${property.rejectionReason}
+                                            <strong>Reason:</strong> ${safe.rejectionReason}
                                         </p>
                                     </div>
                                 </td>
@@ -628,11 +680,11 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; overflow: hidden;">
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Property</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.title}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.title}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Location</td>
-                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${property.city}, ${property.state}</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.city}, ${safe.state}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; font-size: 14px; color: #6b7280;">Status</td>
@@ -645,7 +697,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                             <!-- Action Link -->
                             <tr>
                                 <td align="center" style="padding: 0 35px 25px;">
-                                    <a href="${editUrl}" style="display: inline-block; background-color: #1d1d1f; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
+                                    <a href="${safe.editUrl}" style="display: inline-block; background-color: #1d1d1f; color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 26px; border-radius: 999px;">
                                         Edit &amp; Update Listing
                                     </a>
                                 </td>

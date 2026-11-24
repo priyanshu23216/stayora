@@ -58,7 +58,12 @@ const redisStoreClient = {
     },
 };
 
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 16) {
+    throw new Error("SESSION_SECRET environment variable must be set and at least 16 characters long.");
+}
+
 const sessionMiddleware = session({
+    name: "stayora.sid",
     store: new RedisStore({
         client: redisStoreClient,
         prefix: "stayora:sess:",
@@ -68,6 +73,7 @@ const sessionMiddleware = session({
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
+        sameSite: "lax",
         secure: process.env.NODE_ENV === "production", // set secure to true in production
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days validity for the session cookie
     },

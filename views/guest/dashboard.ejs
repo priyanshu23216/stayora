@@ -194,6 +194,7 @@
         </div>
 
         <form id="cancelBookingForm" method="POST" action="">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="apple-modal-actions">
                 <button type="button" id="cancelModalBackBtn" class="apple-modal-cancel">Keep Booking</button>
                 <button type="submit" id="cancelModalConfirmBtn" class="apple-modal-confirm">Confirm Cancel</button>

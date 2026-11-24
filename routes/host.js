@@ -2,77 +2,101 @@ import express from "express";
 import multer from "multer";
 import { v4 as uuidv4 } from "uuid";
 import db from "../config/db.js";
-import redis from "../config/redis.js";
 import upload from "../config/multer.js";
-import { isLoggedIn, isHost } from "../middlewares/auth.js";
+import { isLoggedIn, isHost, isValidUuid } from "../middlewares/auth.js";
+import { verifyCsrfToken } from "../middlewares/csrf.js";
 import { newListingSchema, editListingSchema, roomSchema } from "../utils/validator.js";
-import { uploadBufferToCloudinary } from "../utils/cloudinaryUpload.js";
+import { uploadBufferToCloudinary, destroyCloudinaryAssets } from "../utils/cloudinaryUpload.js";
+import { validateUploadedImages } from "../utils/imageValidation.js";
+import { atomicIncrWithExpiry, invalidatePropertyCache } from "../utils/redisHelpers.js";
 
 const hostRouter = express.Router();
+
+const MAX_GALLERY_IMAGES_TOTAL = 12;
+const MAX_ROOM_IMAGES_TOTAL = 8;
 
 // Protect all /host/* routes: user must be logged in and have ROLE === "host"
 hostRouter.use(isLoggedIn, isHost);
 
-// Allow 1 cover image and up to 6 gallery images when creating or editing a property
+// Allow 1 cover image and up to 6 gallery images per request
 const uploadPropertyImages = upload.fields([
     { name: "coverImage", maxCount: 1 },
     { name: "galleryImages", maxCount: 6 },
 ]);
 
-// Allow up to 4 room photos when creating or editing a room
+// Allow up to 4 room photos per request
 const uploadRoomImages = upload.array("roomImages", 4);
+
+// Atomic rate limiter for host upload/mutation routes (prevents RAM/Cloudinary abuse)
+async function hostUploadLimiter(req, res, next) {
+    try {
+        const key = `host:upload:${req.user.ID}`;
+        const count = await atomicIncrWithExpiry(key, 900);
+        if (count > 30) {
+            req.flash("error", "Too many upload requests. Please wait 15 minutes and try again.");
+            return res.redirect("/host/dashboard");
+        }
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Verify property UUID + ownership BEFORE Multer buffers up to 35MB into memory
+async function requireOwnedProperty(req, res, next) {
+    try {
+        const propertyId = req.params.propertyId;
+        if (!isValidUuid(propertyId)) {
+            req.flash("error", "Property not found or you do not have access to it.");
+            return res.redirect("/host/dashboard");
+        }
+        const [rows] = await db.execute(
+            `SELECT * FROM properties WHERE ID = ? AND HOST_ID = ?`,
+            [propertyId, req.user.ID]
+        );
+        if (rows.length === 0) {
+            req.flash("error", "Property not found or you do not have access to it.");
+            return res.redirect("/host/dashboard");
+        }
+        req.ownedProperty = rows[0];
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
 
 // Helper 1: Convert checkbox input (undefined, single string, or array) into a unique list
 function getUniqueList(value) {
-    let items = [];
-    if (Array.isArray(value)) {
-        items = value;
-    } else if (value) {
-        items = [value];
-    }
-
-    const uniqueItems = [];
-    for (let item of items) {
-        if (!uniqueItems.includes(item)) {
-            uniqueItems.push(item);
-        }
-    }
-    return uniqueItems;
+    const items = Array.isArray(value) ? value : value ? [value] : [];
+    return [...new Set(items)];
 }
 
-// Helper 2: Keep only real amenity IDs that exist in database for the given category ('property' or 'room')
+// Helper 2: Keep only real amenity IDs that exist in database for the given category
 async function filterValidAmenities(connection, selectedIds, category) {
     if (selectedIds.length === 0) {
         return [];
     }
-
-    const amenityResult = await connection.execute(
+    const [rows] = await connection.execute(
         `SELECT ID FROM amenities WHERE CATEGORY = ?`,
         [category]
     );
-    const validDbIds = [];
-    for (let row of amenityResult[0]) {
-        validDbIds.push(row.ID);
-    }
-
-    const cleanIds = [];
-    for (let id of selectedIds) {
-        if (validDbIds.includes(id)) {
-            cleanIds.push(id);
-        }
-    }
-    return cleanIds;
+    const validDbIds = new Set(rows.map((r) => r.ID));
+    return selectedIds.filter((id) => validDbIds.has(id));
 }
 
 // Helper 3: Keep properties.total_rooms, max_guests, and price_per_night in sync with its rooms
 async function syncPropertyRoomStats(connection, propertyId) {
-    const roomsResult = await connection.execute(
+    const [rooms] = await connection.execute(
         `SELECT TOTAL_ROOMS, CAPACITY, PRICE_PER_NIGHT FROM rooms WHERE property_id = ?`,
         [propertyId]
     );
-    const rooms = roomsResult[0];
 
     if (rooms.length === 0) {
+        // When last room is deleted, mark property unavailable so guests can't hit empty bookable listing
+        await connection.execute(
+            `UPDATE properties SET total_rooms = 0, AVAILABILITY_STATUS = 'unavailable' WHERE ID = ?`,
+            [propertyId]
+        );
         return;
     }
 
@@ -80,13 +104,11 @@ async function syncPropertyRoomStats(connection, propertyId) {
     let maxGuestsFound = 1;
     let minPriceFound = Number(rooms[0].PRICE_PER_NIGHT);
 
-    for (let room of rooms) {
-        totalRoomsSum = totalRoomsSum + Number(room.TOTAL_ROOMS);
-
+    for (const room of rooms) {
+        totalRoomsSum += Number(room.TOTAL_ROOMS);
         if (Number(room.CAPACITY) > maxGuestsFound) {
             maxGuestsFound = Number(room.CAPACITY);
         }
-
         if (Number(room.PRICE_PER_NIGHT) < minPriceFound) {
             minPriceFound = Number(room.PRICE_PER_NIGHT);
         }
@@ -102,21 +124,36 @@ async function syncPropertyRoomStats(connection, propertyId) {
 
 // Helper 4: Format HH:MM into HH:MM:00 for MySQL TIME column
 function formatSqlTime(timeStr) {
-    if (timeStr.length === 5) {
-        return `${timeStr}:00`;
-    }
-    return timeStr;
+    return timeStr.length === 5 ? `${timeStr}:00` : timeStr;
 }
 
-// Helper 5: Clear Redis cache for this property, categories page, and cached /listings pages
-async function clearListingCache(propertyId) {
-    await redis.del(`property:${propertyId}`);
-    await redis.del("categories:all");
-
-    const listKeys = await redis.keys("listingsBy*");
-    if (listKeys.length > 0) {
-        await redis.del(...listKeys);
+// Helper 5: Safe rollback wrapper
+async function safeRollback(connection) {
+    if (!connection) return;
+    try {
+        await connection.rollback();
+    } catch (rbErr) {
+        console.error("Host rollback error:", rbErr);
     }
+}
+
+// Helper 6: Check peak concurrent future occupancy for a room
+function computePeakFutureOccupancy(bookings) {
+    if (bookings.length === 0) return 0;
+    const events = [];
+    for (const b of bookings) {
+        events.push({ date: b.CHECK_IN_DATE, delta: 1 });
+        events.push({ date: b.CHECK_OUT_DATE, delta: -1 });
+    }
+    // Check-outs happen before check-ins on the same day (-1 before +1)
+    events.sort((a, b) => (a.date === b.date ? a.delta - b.delta : a.date < b.date ? -1 : 1));
+    let current = 0;
+    let peak = 0;
+    for (const ev of events) {
+        current += ev.delta;
+        if (current > peak) peak = current;
+    }
+    return peak;
 }
 
 /* ==========================================================================
@@ -126,15 +163,14 @@ async function clearListingCache(propertyId) {
 // 1. GET /host/dashboard -> Show all properties listed by this host (newest first)
 hostRouter.get("/dashboard", async (req, res, next) => {
     try {
-        const result = await db.execute(
+        const [listings] = await db.execute(
             `SELECT * FROM properties WHERE HOST_ID = ? ORDER BY created_at DESC`,
             [req.user.ID]
         );
-        const listings = result[0];
 
         return res.render("host/dashboard", {
             title: "Host Dashboard",
-            listings: listings,
+            listings,
         });
     } catch (err) {
         return next(err);
@@ -144,165 +180,154 @@ hostRouter.get("/dashboard", async (req, res, next) => {
 // 2. GET /host/listings/new -> Show the multipart form to create a new listing
 hostRouter.get("/listings/new", async (req, res, next) => {
     try {
-        const amenityResult = await db.execute(
+        const [amenities] = await db.execute(
             `SELECT ID, NAME FROM amenities WHERE CATEGORY = 'property' ORDER BY NAME ASC`
         );
-        const amenities = amenityResult[0];
 
         return res.render("host/new", {
             title: "New Listing",
-            amenities: amenities,
+            amenities,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 3. POST /host/listings -> Validate with Zod, upload images to Cloudinary, and save property
-hostRouter.post("/listings", uploadPropertyImages, async (req, res, next) => {
-    // Step 1: Validate all form inputs using Zod + regex
-    const validation = newListingSchema.safeParse(req.body);
-
-    if (!validation.success) {
-        req.flash("error", validation.error.issues[0].message);
-        return res.redirect("/host/listings/new");
-    }
-
-    // Step 2: Check that a cover image was uploaded
-    let coverFiles = [];
-    let galleryFiles = [];
-    if (req.files && req.files.coverImage) {
-        coverFiles = req.files.coverImage;
-    }
-    if (req.files && req.files.galleryImages) {
-        galleryFiles = req.files.galleryImages;
-    }
-
-    if (coverFiles.length === 0) {
-        req.flash("error", "Please upload a cover image for your property.");
-        return res.redirect("/host/listings/new");
-    }
-
-    const data = validation.data;
-    const latitude = data.latitude === "" ? null : Number(data.latitude);
-    const longitude = data.longitude === "" ? null : Number(data.longitude);
-    const checkInTime = formatSqlTime(data.checkInTime);
-    const checkOutTime = formatSqlTime(data.checkOutTime);
-    const requestedAmenities = getUniqueList(data.amenities);
-
-    // Step 3: Upload cover image and gallery images to Cloudinary
-    let coverUrl = "";
-    const galleryUrls = [];
-
-    try {
-        const coverUpload = await uploadBufferToCloudinary(coverFiles[0].buffer, "stayora/properties");
-        coverUrl = coverUpload.url;
-
-        for (let file of galleryFiles) {
-            const galleryUpload = await uploadBufferToCloudinary(file.buffer, "stayora/properties/gallery");
-            galleryUrls.push(galleryUpload.url);
+// 3. POST /host/listings -> Rate limit, Multer, CSRF, Zod, magic-byte check, Cloudinary upload, DB save
+hostRouter.post(
+    "/listings",
+    hostUploadLimiter,
+    uploadPropertyImages,
+    verifyCsrfToken,
+    async (req, res, next) => {
+        const validation = newListingSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
+            return res.redirect("/host/listings/new");
         }
-    } catch (uploadErr) {
-        console.error("Cloudinary upload error:", uploadErr);
-        req.flash("error", "Failed to upload images. Please try again.");
-        return res.redirect("/host/listings/new");
-    }
 
-    // Step 4: Save property, gallery images, and valid amenities inside a SQL transaction
-    const connection = await db.getConnection();
+        const coverFiles = req.files?.coverImage || [];
+        const galleryFiles = req.files?.galleryImages || [];
 
-    try {
-        await connection.beginTransaction();
+        if (coverFiles.length === 0) {
+            req.flash("error", "Please upload a cover image for your property.");
+            return res.redirect("/host/listings/new");
+        }
 
-        const propertyId = uuidv4();
-        const validAmenities = await filterValidAmenities(connection, requestedAmenities, "property");
+        // Magic-byte verification blocks spoofed MIME headers before touching Cloudinary
+        if (!validateUploadedImages([...coverFiles, ...galleryFiles])) {
+            req.flash("error", "One or more uploaded files are not valid JPEG, PNG, WEBP, or AVIF images.");
+            return res.redirect("/host/listings/new");
+        }
 
-        await connection.execute(
-            `INSERT INTO properties (
-                ID, title, description, image, PROPERTY_TYPE, BATHROOMS, price_per_night,
-                location, city, state, pincode, latitude, longitude,
-                AVAILABILITY_STATUS, verification_status, total_rooms, max_guests,
-                check_in_time, check_out_time, cancellation_policy, HOST_ID
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                propertyId,
-                data.title,
-                data.description,
-                coverUrl,
-                data.propertyType,
-                data.bathrooms,
-                data.pricePerNight,
-                data.location,
-                data.city,
-                data.state,
-                data.pincode,
-                latitude,
-                longitude,
-                "available",
-                "pending",
-                data.totalRooms,
-                data.maxGuests,
-                checkInTime,
-                checkOutTime,
-                data.cancellationPolicy,
-                req.user.ID,
-            ]
-        );
+        const data = validation.data;
+        const latitude = data.latitude === "" ? null : Number(data.latitude);
+        const longitude = data.longitude === "" ? null : Number(data.longitude);
+        const checkInTime = formatSqlTime(data.checkInTime);
+        const checkOutTime = formatSqlTime(data.checkOutTime);
+        const requestedAmenities = getUniqueList(data.amenities);
 
-        for (let imgUrl of galleryUrls) {
+        let coverUrl = "";
+        const galleryUrls = [];
+        const uploadedPublicIds = [];
+
+        try {
+            const coverUpload = await uploadBufferToCloudinary(coverFiles[0].buffer, "stayora/properties");
+            coverUrl = coverUpload.url;
+            uploadedPublicIds.push(coverUpload.publicId);
+
+            for (const file of galleryFiles) {
+                const galleryUpload = await uploadBufferToCloudinary(file.buffer, "stayora/properties/gallery");
+                galleryUrls.push(galleryUpload.url);
+                uploadedPublicIds.push(galleryUpload.publicId);
+            }
+        } catch (uploadErr) {
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            console.error("Cloudinary upload error:", uploadErr);
+            req.flash("error", "Failed to upload images. Please try again.");
+            return res.redirect("/host/listings/new");
+        }
+
+        let connection;
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
+            const propertyId = uuidv4();
+            const validAmenities = await filterValidAmenities(connection, requestedAmenities, "property");
+
             await connection.execute(
-                `INSERT INTO property_images (ID, property_id, IMAGE_URL) VALUES (?, ?, ?)`,
-                [uuidv4(), propertyId, imgUrl]
+                `INSERT INTO properties (
+                    ID, title, description, image, PROPERTY_TYPE, BATHROOMS, price_per_night,
+                    location, city, state, pincode, latitude, longitude,
+                    AVAILABILITY_STATUS, verification_status, total_rooms, max_guests,
+                    check_in_time, check_out_time, cancellation_policy, HOST_ID
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    propertyId,
+                    data.title,
+                    data.description,
+                    coverUrl,
+                    data.propertyType,
+                    data.bathrooms,
+                    data.pricePerNight,
+                    data.location,
+                    data.city,
+                    data.state,
+                    data.pincode,
+                    latitude,
+                    longitude,
+                    "available",
+                    "pending",
+                    data.totalRooms,
+                    data.maxGuests,
+                    checkInTime,
+                    checkOutTime,
+                    data.cancellationPolicy,
+                    req.user.ID,
+                ]
             );
+
+            for (const imgUrl of galleryUrls) {
+                await connection.execute(
+                    `INSERT INTO property_images (ID, property_id, IMAGE_URL) VALUES (?, ?, ?)`,
+                    [uuidv4(), propertyId, imgUrl]
+                );
+            }
+
+            for (const amenityId of validAmenities) {
+                await connection.execute(
+                    `INSERT INTO property_amenities (ID, property_id, AMENITY_ID) VALUES (?, ?, ?)`,
+                    [uuidv4(), propertyId, amenityId]
+                );
+            }
+
+            await connection.commit();
+
+            req.flash("success", `"${data.title}" created! Now add rooms so guests can book your stay.`);
+            return res.redirect(`/host/listings/${propertyId}`);
+        } catch (err) {
+            await safeRollback(connection);
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            return next(err);
+        } finally {
+            if (connection) connection.release();
         }
-
-        for (let amenityId of validAmenities) {
-            await connection.execute(
-                `INSERT INTO property_amenities (ID, property_id, AMENITY_ID) VALUES (?, ?, ?)`,
-                [uuidv4(), propertyId, amenityId]
-            );
-        }
-
-        await connection.commit();
-
-        req.flash("success", `"${data.title}" created! Now add rooms so guests can book your stay.`);
-        return res.redirect(`/host/listings/${propertyId}`);
-    } catch (err) {
-        await connection.rollback();
-        return next(err);
-    } finally {
-        connection.release();
     }
-});
+);
 
 // 4. GET /host/listings/:propertyId -> View More page showing property details + all its rooms
-hostRouter.get("/listings/:propertyId", async (req, res, next) => {
+hostRouter.get("/listings/:propertyId", requireOwnedProperty, async (req, res, next) => {
     try {
         const propertyId = req.params.propertyId;
+        const property = req.ownedProperty;
 
-        // Step 1: Fetch property and verify it belongs to the logged-in host
-        const propertyResult = await db.execute(
-            `SELECT * FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-        const propertyRows = propertyResult[0];
-
-        if (propertyRows.length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-
-        const property = propertyRows[0];
-
-        // Step 2: Fetch gallery images of this property
-        const imagesResult = await db.execute(
+        const [propertyImages] = await db.execute(
             `SELECT ID, IMAGE_URL FROM property_images WHERE property_id = ?`,
             [propertyId]
         );
-        const propertyImages = imagesResult[0];
 
-        // Step 3: Fetch amenities of this property
-        const amenitiesResult = await db.execute(
+        const [propertyAmenities] = await db.execute(
             `SELECT amenities.ID, amenities.NAME
              FROM property_amenities
              JOIN amenities ON property_amenities.AMENITY_ID = amenities.ID
@@ -310,26 +335,21 @@ hostRouter.get("/listings/:propertyId", async (req, res, next) => {
              ORDER BY amenities.NAME ASC`,
             [propertyId]
         );
-        const propertyAmenities = amenitiesResult[0];
 
-        // Step 4: Fetch all rooms of this property
-        const roomsResult = await db.execute(
+        const [rooms] = await db.execute(
             `SELECT * FROM rooms WHERE property_id = ? ORDER BY PRICE_PER_NIGHT ASC`,
             [propertyId]
         );
-        const rooms = roomsResult[0];
 
-        // Step 5: Fetch images and amenities for every room in this property
-        const roomImagesResult = await db.execute(
+        const [roomImages] = await db.execute(
             `SELECT room_images.ROOM_ID, room_images.IMAGE_URL
              FROM room_images
              JOIN rooms ON room_images.ROOM_ID = rooms.ID
              WHERE rooms.property_id = ?`,
             [propertyId]
         );
-        const roomImages = roomImagesResult[0];
 
-        const roomAmenitiesResult = await db.execute(
+        const [roomAmenities] = await db.execute(
             `SELECT room_amenities.ROOM_ID, amenities.NAME
              FROM room_amenities
              JOIN amenities ON room_amenities.AMENITY_ID = amenities.ID
@@ -338,32 +358,18 @@ hostRouter.get("/listings/:propertyId", async (req, res, next) => {
              ORDER BY amenities.NAME ASC`,
             [propertyId]
         );
-        const roomAmenities = roomAmenitiesResult[0];
 
-        // Step 6: Attach each room's images and amenities inside that room object
-        for (let room of rooms) {
-            room.images = [];
-            room.amenities = [];
-
-            for (let imageItem of roomImages) {
-                if (imageItem.ROOM_ID === room.ID) {
-                    room.images.push(imageItem);
-                }
-            }
-
-            for (let amenityItem of roomAmenities) {
-                if (amenityItem.ROOM_ID === room.ID) {
-                    room.amenities.push(amenityItem);
-                }
-            }
+        for (const room of rooms) {
+            room.images = roomImages.filter((img) => img.ROOM_ID === room.ID);
+            room.amenities = roomAmenities.filter((am) => am.ROOM_ID === room.ID);
         }
 
         return res.render("host/show", {
             title: property.title,
-            property: property,
-            propertyImages: propertyImages,
-            propertyAmenities: propertyAmenities,
-            rooms: rooms,
+            property,
+            propertyImages,
+            propertyAmenities,
+            rooms,
         });
     } catch (err) {
         return next(err);
@@ -371,279 +377,337 @@ hostRouter.get("/listings/:propertyId", async (req, res, next) => {
 });
 
 // 5. GET /host/listings/:propertyId/edit -> Show pre-filled multipart edit form for property
-hostRouter.get("/listings/:propertyId/edit", async (req, res, next) => {
+hostRouter.get("/listings/:propertyId/edit", requireOwnedProperty, async (req, res, next) => {
     try {
         const propertyId = req.params.propertyId;
+        const property = req.ownedProperty;
 
-        // Step 1: Fetch property and verify ownership
-        const propertyResult = await db.execute(
-            `SELECT * FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-        const propertyRows = propertyResult[0];
+        const checkInValue = property.check_in_time ? String(property.check_in_time).slice(0, 5) : "13:00";
+        const checkOutValue = property.check_out_time ? String(property.check_out_time).slice(0, 5) : "11:00";
 
-        if (propertyRows.length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-
-        const property = propertyRows[0];
-
-        let checkInValue = "13:00";
-        if (property.check_in_time) {
-            checkInValue = String(property.check_in_time).slice(0, 5);
-        }
-
-        let checkOutValue = "11:00";
-        if (property.check_out_time) {
-            checkOutValue = String(property.check_out_time).slice(0, 5);
-        }
-
-        // Step 2: Fetch all property amenities
-        const allAmenitiesResult = await db.execute(
+        const [amenities] = await db.execute(
             `SELECT ID, NAME FROM amenities WHERE CATEGORY = 'property' ORDER BY NAME ASC`
         );
-        const amenities = allAmenitiesResult[0];
 
-        // Step 3: Fetch currently checked amenity IDs for this property
-        const selectedResult = await db.execute(
+        const [selectedRows] = await db.execute(
             `SELECT AMENITY_ID FROM property_amenities WHERE property_id = ?`,
             [propertyId]
         );
-        const selectedAmenityIds = [];
-        for (let row of selectedResult[0]) {
-            selectedAmenityIds.push(row.AMENITY_ID);
-        }
+        const selectedAmenityIds = selectedRows.map((row) => row.AMENITY_ID);
 
-        // Step 4: Fetch existing gallery photos
-        const galleryResult = await db.execute(
+        const [propertyImages] = await db.execute(
             `SELECT ID, IMAGE_URL FROM property_images WHERE property_id = ?`,
             [propertyId]
         );
-        const propertyImages = galleryResult[0];
 
         return res.render("host/edit", {
             title: `Edit ${property.title}`,
-            property: property,
-            checkInValue: checkInValue,
-            checkOutValue: checkOutValue,
-            amenities: amenities,
-            selectedAmenityIds: selectedAmenityIds,
-            propertyImages: propertyImages,
+            property,
+            checkInValue,
+            checkOutValue,
+            amenities,
+            selectedAmenityIds,
+            propertyImages,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 6. PUT /host/listings/:propertyId -> Validate with Zod, upload optional new images, and update property
-hostRouter.put("/listings/:propertyId", uploadPropertyImages, async (req, res, next) => {
-    const propertyId = req.params.propertyId;
+// 6. PUT /host/listings/:propertyId -> Ownership checked BEFORE Multer, CSRF, magic-bytes, re-verification on edits
+hostRouter.put(
+    "/listings/:propertyId",
+    hostUploadLimiter,
+    requireOwnedProperty,
+    uploadPropertyImages,
+    verifyCsrfToken,
+    async (req, res, next) => {
+        const propertyId = req.params.propertyId;
+        const existingProperty = req.ownedProperty;
 
-    // Step 1: Verify property ownership
-    let existingProperty;
-    try {
-        const propertyResult = await db.execute(
-            `SELECT * FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-        if (propertyResult[0].length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-        existingProperty = propertyResult[0][0];
-    } catch (err) {
-        return next(err);
-    }
-
-    // Step 2: Validate form inputs with Zod + regex
-    const validation = editListingSchema.safeParse(req.body);
-
-    if (!validation.success) {
-        req.flash("error", validation.error.issues[0].message);
-        return res.redirect(`/host/listings/${propertyId}/edit`);
-    }
-
-    const data = validation.data;
-    const latitude = data.latitude === "" ? null : Number(data.latitude);
-    const longitude = data.longitude === "" ? null : Number(data.longitude);
-    const checkInTime = formatSqlTime(data.checkInTime);
-    const checkOutTime = formatSqlTime(data.checkOutTime);
-    const requestedAmenities = getUniqueList(data.amenities);
-
-    // Step 3: Upload optional new cover image and gallery images to Cloudinary
-    let coverFiles = [];
-    let galleryFiles = [];
-    if (req.files && req.files.coverImage) {
-        coverFiles = req.files.coverImage;
-    }
-    if (req.files && req.files.galleryImages) {
-        galleryFiles = req.files.galleryImages;
-    }
-
-    let coverUrl = existingProperty.image;
-    const newGalleryUrls = [];
-
-    try {
-        if (coverFiles.length > 0) {
-            const coverUpload = await uploadBufferToCloudinary(coverFiles[0].buffer, "stayora/properties");
-            coverUrl = coverUpload.url;
+        const validation = editListingSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
+            return res.redirect(`/host/listings/${propertyId}/edit`);
         }
 
-        for (let file of galleryFiles) {
-            const galleryUpload = await uploadBufferToCloudinary(file.buffer, "stayora/properties/gallery");
-            newGalleryUrls.push(galleryUpload.url);
+        const coverFiles = req.files?.coverImage || [];
+        const galleryFiles = req.files?.galleryImages || [];
+
+        if (!validateUploadedImages([...coverFiles, ...galleryFiles])) {
+            req.flash("error", "One or more uploaded files are not valid JPEG, PNG, WEBP, or AVIF images.");
+            return res.redirect(`/host/listings/${propertyId}/edit`);
         }
-    } catch (uploadErr) {
-        console.error("Cloudinary upload error:", uploadErr);
-        req.flash("error", "Failed to upload images. Please try again.");
-        return res.redirect(`/host/listings/${propertyId}/edit`);
-    }
 
-    // Step 4: Update property, add new gallery images, and refresh amenities inside a transaction
-    const connection = await db.getConnection();
-
-    try {
-        await connection.beginTransaction();
-
-        const validAmenities = await filterValidAmenities(connection, requestedAmenities, "property");
-
-        await connection.execute(
-            `UPDATE properties
-             SET title = ?,
-                 description = ?,
-                 image = ?,
-                 PROPERTY_TYPE = ?,
-                 BATHROOMS = ?,
-                 price_per_night = ?,
-                 location = ?,
-                 city = ?,
-                 state = ?,
-                 pincode = ?,
-                 latitude = ?,
-                 longitude = ?,
-                 AVAILABILITY_STATUS = ?,
-                 total_rooms = ?,
-                 max_guests = ?,
-                 check_in_time = ?,
-                 check_out_time = ?,
-                 cancellation_policy = ?
-             WHERE ID = ? AND HOST_ID = ?`,
-            [
-                data.title,
-                data.description,
-                coverUrl,
-                data.propertyType,
-                data.bathrooms,
-                data.pricePerNight,
-                data.location,
-                data.city,
-                data.state,
-                data.pincode,
-                latitude,
-                longitude,
-                data.availabilityStatus,
-                data.totalRooms,
-                data.maxGuests,
-                checkInTime,
-                checkOutTime,
-                data.cancellationPolicy,
-                propertyId,
-                req.user.ID,
-            ]
-        );
-
-        for (let imgUrl of newGalleryUrls) {
-            await connection.execute(
-                `INSERT INTO property_images (ID, property_id, IMAGE_URL) VALUES (?, ?, ?)`,
-                [uuidv4(), propertyId, imgUrl]
+        // Enforce total gallery cap so hosts cannot append unlimited images
+        if (galleryFiles.length > 0) {
+            const [existingCountRows] = await db.execute(
+                `SELECT COUNT(*) AS imgCount FROM property_images WHERE property_id = ?`,
+                [propertyId]
             );
+            const currentCount = Number(existingCountRows[0].imgCount);
+            if (currentCount + galleryFiles.length > MAX_GALLERY_IMAGES_TOTAL) {
+                req.flash(
+                    "error",
+                    `A property can have at most ${MAX_GALLERY_IMAGES_TOTAL} gallery images (currently ${currentCount}).`
+                );
+                return res.redirect(`/host/listings/${propertyId}/edit`);
+            }
         }
 
-        await connection.execute(
-            `DELETE FROM property_amenities WHERE property_id = ?`,
-            [propertyId]
-        );
+        const data = validation.data;
+        const latitude = data.latitude === "" ? null : Number(data.latitude);
+        const longitude = data.longitude === "" ? null : Number(data.longitude);
+        const checkInTime = formatSqlTime(data.checkInTime);
+        const checkOutTime = formatSqlTime(data.checkOutTime);
+        const requestedAmenities = getUniqueList(data.amenities);
 
-        for (let amenityId of validAmenities) {
-            await connection.execute(
-                `INSERT INTO property_amenities (ID, property_id, AMENITY_ID) VALUES (?, ?, ?)`,
-                [uuidv4(), propertyId, amenityId]
+        let coverUrl = existingProperty.image;
+        const newGalleryUrls = [];
+        const uploadedPublicIds = [];
+
+        try {
+            if (coverFiles.length > 0) {
+                const coverUpload = await uploadBufferToCloudinary(coverFiles[0].buffer, "stayora/properties");
+                coverUrl = coverUpload.url;
+                uploadedPublicIds.push(coverUpload.publicId);
+            }
+
+            for (const file of galleryFiles) {
+                const galleryUpload = await uploadBufferToCloudinary(file.buffer, "stayora/properties/gallery");
+                newGalleryUrls.push(galleryUpload.url);
+                uploadedPublicIds.push(galleryUpload.publicId);
+            }
+        } catch (uploadErr) {
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            console.error("Cloudinary upload error:", uploadErr);
+            req.flash("error", "Failed to upload images. Please try again.");
+            return res.redirect(`/host/listings/${propertyId}/edit`);
+        }
+
+        // Determine whether material content changed (prevents post-approval bait-and-switch AND unblocks rejected listings)
+        const contentChanged =
+            data.title !== existingProperty.title ||
+            data.description !== existingProperty.description ||
+            data.propertyType !== existingProperty.PROPERTY_TYPE ||
+            data.location !== existingProperty.location ||
+            data.city !== existingProperty.city ||
+            data.state !== existingProperty.state ||
+            data.pincode !== existingProperty.pincode ||
+            coverFiles.length > 0 ||
+            galleryFiles.length > 0;
+
+        const requiresReReview =
+            existingProperty.verification_status === "rejected" ||
+            (existingProperty.verification_status === "approved" && contentChanged);
+
+        let connection;
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
+            const validAmenities = await filterValidAmenities(connection, requestedAmenities, "property");
+
+            if (requiresReReview) {
+                await connection.execute(
+                    `UPDATE properties
+                     SET title = ?,
+                         description = ?,
+                         image = ?,
+                         PROPERTY_TYPE = ?,
+                         BATHROOMS = ?,
+                         price_per_night = ?,
+                         location = ?,
+                         city = ?,
+                         state = ?,
+                         pincode = ?,
+                         latitude = ?,
+                         longitude = ?,
+                         AVAILABILITY_STATUS = ?,
+                         total_rooms = ?,
+                         max_guests = ?,
+                         check_in_time = ?,
+                         check_out_time = ?,
+                         cancellation_policy = ?,
+                         verification_status = 'pending',
+                         rejection_reason = NULL,
+                         verified_by_admin_user_id = NULL,
+                         verified_at = NULL
+                     WHERE ID = ? AND HOST_ID = ?`,
+                    [
+                        data.title,
+                        data.description,
+                        coverUrl,
+                        data.propertyType,
+                        data.bathrooms,
+                        data.pricePerNight,
+                        data.location,
+                        data.city,
+                        data.state,
+                        data.pincode,
+                        latitude,
+                        longitude,
+                        data.availabilityStatus,
+                        data.totalRooms,
+                        data.maxGuests,
+                        checkInTime,
+                        checkOutTime,
+                        data.cancellationPolicy,
+                        propertyId,
+                        req.user.ID,
+                    ]
+                );
+            } else {
+                await connection.execute(
+                    `UPDATE properties
+                     SET title = ?,
+                         description = ?,
+                         image = ?,
+                         PROPERTY_TYPE = ?,
+                         BATHROOMS = ?,
+                         price_per_night = ?,
+                         location = ?,
+                         city = ?,
+                         state = ?,
+                         pincode = ?,
+                         latitude = ?,
+                         longitude = ?,
+                         AVAILABILITY_STATUS = ?,
+                         total_rooms = ?,
+                         max_guests = ?,
+                         check_in_time = ?,
+                         check_out_time = ?,
+                         cancellation_policy = ?
+                     WHERE ID = ? AND HOST_ID = ?`,
+                    [
+                        data.title,
+                        data.description,
+                        coverUrl,
+                        data.propertyType,
+                        data.bathrooms,
+                        data.pricePerNight,
+                        data.location,
+                        data.city,
+                        data.state,
+                        data.pincode,
+                        latitude,
+                        longitude,
+                        data.availabilityStatus,
+                        data.totalRooms,
+                        data.maxGuests,
+                        checkInTime,
+                        checkOutTime,
+                        data.cancellationPolicy,
+                        propertyId,
+                        req.user.ID,
+                    ]
+                );
+            }
+
+            for (const imgUrl of newGalleryUrls) {
+                await connection.execute(
+                    `INSERT INTO property_images (ID, property_id, IMAGE_URL) VALUES (?, ?, ?)`,
+                    [uuidv4(), propertyId, imgUrl]
+                );
+            }
+
+            await connection.execute(`DELETE FROM property_amenities WHERE property_id = ?`, [propertyId]);
+
+            for (const amenityId of validAmenities) {
+                await connection.execute(
+                    `INSERT INTO property_amenities (ID, property_id, AMENITY_ID) VALUES (?, ?, ?)`,
+                    [uuidv4(), propertyId, amenityId]
+                );
+            }
+
+            // Re-sync price/rooms/guests if rooms exist (prevents bait-and-switch base pricing)
+            const [existingRooms] = await connection.execute(
+                `SELECT ID FROM rooms WHERE property_id = ? LIMIT 1`,
+                [propertyId]
             );
+            if (existingRooms.length > 0) {
+                await syncPropertyRoomStats(connection, propertyId);
+            }
+
+            await connection.commit();
+            await invalidatePropertyCache(propertyId);
+
+            if (requiresReReview) {
+                req.flash(
+                    "success",
+                    `"${data.title}" has been updated and submitted for quick admin verification.`
+                );
+            } else {
+                req.flash("success", `"${data.title}" has been updated successfully!`);
+            }
+            return res.redirect(`/host/listings/${propertyId}`);
+        } catch (err) {
+            await safeRollback(connection);
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            return next(err);
+        } finally {
+            if (connection) connection.release();
         }
-
-        await connection.commit();
-
-        // Step 5: Clear Redis cache so updated details appear right away
-        await clearListingCache(propertyId);
-
-        req.flash("success", `"${data.title}" has been updated successfully!`);
-        return res.redirect(`/host/listings/${propertyId}`);
-    } catch (err) {
-        await connection.rollback();
-        return next(err);
-    } finally {
-        connection.release();
     }
-});
+);
 
-// 7. DELETE /host/listings/:propertyId -> Delete a host's property safely
+// 7. DELETE /host/listings/:propertyId -> Lock rooms FOR UPDATE & delete safely
 hostRouter.delete("/listings/:propertyId", async (req, res, next) => {
     const propertyId = req.params.propertyId;
-    const connection = await db.getConnection();
+    if (!isValidUuid(propertyId)) {
+        req.flash("error", "Property not found or you do not have access to it.");
+        return res.redirect("/host/dashboard");
+    }
 
+    let connection;
     try {
+        connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // Step 1: Verify ownership
-        const propertyResult = await connection.execute(
-            `SELECT ID, title FROM properties WHERE ID = ? AND HOST_ID = ?`,
+        const [propertyRows] = await connection.execute(
+            `SELECT ID, title FROM properties WHERE ID = ? AND HOST_ID = ? FOR UPDATE`,
             [propertyId, req.user.ID]
         );
-
-        if (propertyResult[0].length === 0) {
+        if (propertyRows.length === 0) {
             await connection.rollback();
             req.flash("error", "Property not found or you do not have access to it.");
             return res.redirect("/host/dashboard");
         }
+        const propertyTitle = propertyRows[0].title;
 
-        const propertyTitle = propertyResult[0][0].title;
-
-        // Step 2: Fetch all rooms of this property
-        const roomsResult = await connection.execute(
-            `SELECT ID FROM rooms WHERE property_id = ?`,
+        // Lock all rooms FOR UPDATE to prevent concurrent booking TOCTOU race
+        const [rooms] = await connection.execute(
+            `SELECT ID FROM rooms WHERE property_id = ? FOR UPDATE`,
             [propertyId]
         );
-        const rooms = roomsResult[0];
 
-        // Step 3: Block deletion if any room has active (pending or confirmed) bookings
-        for (let room of rooms) {
-            const activeResult = await connection.execute(
+        // Block deletion only if any room has active upcoming/ongoing bookings (ignores long-past un-synced stays)
+        for (const room of rooms) {
+            const [activeRows] = await connection.execute(
                 `SELECT COUNT(*) AS activeCount
                  FROM bookings
-                 WHERE ROOM_ID = ? AND STATUS IN ('pending', 'confirmed')`,
+                 WHERE ROOM_ID = ?
+                   AND STATUS IN ('pending', 'confirmed')
+                   AND CHECK_OUT_DATE >= CURDATE()`,
                 [room.ID]
             );
-
-            if (activeResult[0][0].activeCount > 0) {
+            if (Number(activeRows[0].activeCount) > 0) {
                 await connection.rollback();
-                req.flash("error", "Cannot delete this property because it has active bookings.");
+                req.flash("error", "Cannot delete this property because it has active upcoming bookings.");
                 return res.redirect(`/host/listings/${propertyId}`);
             }
         }
 
-        // Step 4: Delete reviews, bookings, room images, room amenities, and rooms cleanly
         await connection.execute(`DELETE FROM review WHERE property_id = ?`, [propertyId]);
 
-        for (let room of rooms) {
-            const bookingRows = await connection.execute(
+        for (const room of rooms) {
+            const [bookingRows] = await connection.execute(
                 `SELECT ID FROM bookings WHERE ROOM_ID = ?`,
                 [room.ID]
             );
-            for (let booking of bookingRows[0]) {
+            for (const booking of bookingRows) {
                 await connection.execute(`DELETE FROM review WHERE BOOKING_ID = ?`, [booking.ID]);
             }
-
             await connection.execute(`DELETE FROM bookings WHERE ROOM_ID = ?`, [room.ID]);
             await connection.execute(`DELETE FROM room_images WHERE ROOM_ID = ?`, [room.ID]);
             await connection.execute(`DELETE FROM room_amenities WHERE ROOM_ID = ?`, [room.ID]);
@@ -658,17 +722,15 @@ hostRouter.delete("/listings/:propertyId", async (req, res, next) => {
         );
 
         await connection.commit();
-
-        // Step 5: Clear Redis cache for this property
-        await clearListingCache(propertyId);
+        await invalidatePropertyCache(propertyId);
 
         req.flash("success", `"${propertyTitle}" has been deleted.`);
         return res.redirect("/host/dashboard");
     } catch (err) {
-        await connection.rollback();
+        await safeRollback(connection);
         return next(err);
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
@@ -676,367 +738,374 @@ hostRouter.delete("/listings/:propertyId", async (req, res, next) => {
    ROOM CRUD ROUTES (Inside a Host's Property)
    ========================================================================== */
 
-// 8. GET /host/listings/:propertyId/rooms/new -> Show multipart form to add a new room
-hostRouter.get("/listings/:propertyId/rooms/new", async (req, res, next) => {
+// 8. GET /host/listings/:propertyId/rooms/new
+hostRouter.get("/listings/:propertyId/rooms/new", requireOwnedProperty, async (req, res, next) => {
     try {
-        const propertyId = req.params.propertyId;
-
-        // Step 1: Verify property belongs to the logged-in host
-        const propertyResult = await db.execute(
-            `SELECT ID, title FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-
-        if (propertyResult[0].length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-
-        const property = propertyResult[0][0];
-
-        // Step 2: Fetch room amenities from database
-        const amenityResult = await db.execute(
+        const property = req.ownedProperty;
+        const [amenities] = await db.execute(
             `SELECT ID, NAME FROM amenities WHERE CATEGORY = 'room' ORDER BY NAME ASC`
         );
-        const amenities = amenityResult[0];
 
         return res.render("host/rooms/new", {
             title: `Add Room - ${property.title}`,
-            property: property,
-            amenities: amenities,
+            property,
+            amenities,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 9. POST /host/listings/:propertyId/rooms -> Validate with Zod, upload room photos, and save room
-hostRouter.post("/listings/:propertyId/rooms", uploadRoomImages, async (req, res, next) => {
-    const propertyId = req.params.propertyId;
+// 9. POST /host/listings/:propertyId/rooms
+hostRouter.post(
+    "/listings/:propertyId/rooms",
+    hostUploadLimiter,
+    requireOwnedProperty,
+    uploadRoomImages,
+    verifyCsrfToken,
+    async (req, res, next) => {
+        const propertyId = req.params.propertyId;
 
-    // Step 1: Verify property belongs to the logged-in host
-    try {
-        const propertyResult = await db.execute(
-            `SELECT ID FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-        if (propertyResult[0].length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
+        const validation = roomSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
+            return res.redirect(`/host/listings/${propertyId}/rooms/new`);
         }
-    } catch (err) {
-        return next(err);
-    }
 
-    // Step 2: Validate room form inputs with Zod + regex
-    const validation = roomSchema.safeParse(req.body);
-
-    if (!validation.success) {
-        req.flash("error", validation.error.issues[0].message);
-        return res.redirect(`/host/listings/${propertyId}/rooms/new`);
-    }
-
-    const data = validation.data;
-    const requestedAmenities = getUniqueList(data.amenities);
-    const roomFiles = req.files || [];
-
-    // Step 3: Upload optional room photos to Cloudinary (up to 4 photos)
-    const roomImageUrls = [];
-
-    try {
-        for (let file of roomFiles) {
-            const uploaded = await uploadBufferToCloudinary(file.buffer, "stayora/rooms");
-            roomImageUrls.push(uploaded.url);
+        const roomFiles = req.files || [];
+        if (!validateUploadedImages(roomFiles)) {
+            req.flash("error", "One or more uploaded files are not valid JPEG, PNG, WEBP, or AVIF images.");
+            return res.redirect(`/host/listings/${propertyId}/rooms/new`);
         }
-    } catch (uploadErr) {
-        console.error("Cloudinary room image upload error:", uploadErr);
-        req.flash("error", "Failed to upload room images. Please try again.");
-        return res.redirect(`/host/listings/${propertyId}/rooms/new`);
-    }
 
-    // Step 4: Save room, room images, valid room amenities, and sync property stats
-    const connection = await db.getConnection();
+        const data = validation.data;
+        const requestedAmenities = getUniqueList(data.amenities);
+        const roomImageUrls = [];
+        const uploadedPublicIds = [];
 
-    try {
-        await connection.beginTransaction();
+        try {
+            for (const file of roomFiles) {
+                const uploaded = await uploadBufferToCloudinary(file.buffer, "stayora/rooms");
+                roomImageUrls.push(uploaded.url);
+                uploadedPublicIds.push(uploaded.publicId);
+            }
+        } catch (uploadErr) {
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            console.error("Cloudinary room image upload error:", uploadErr);
+            req.flash("error", "Failed to upload room images. Please try again.");
+            return res.redirect(`/host/listings/${propertyId}/rooms/new`);
+        }
 
-        const roomId = uuidv4();
-        const validAmenities = await filterValidAmenities(connection, requestedAmenities, "room");
+        let connection;
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
 
-        await connection.execute(
-            `INSERT INTO rooms (ID, property_id, ROOM_TYPE, DESCRIPTION, CAPACITY, TOTAL_ROOMS, PRICE_PER_NIGHT)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [roomId, propertyId, data.roomType, data.description, data.capacity, data.totalRooms, data.pricePerNight]
-        );
+            const roomId = uuidv4();
+            const validAmenities = await filterValidAmenities(connection, requestedAmenities, "room");
 
-        for (let imgUrl of roomImageUrls) {
             await connection.execute(
-                `INSERT INTO room_images (ID, ROOM_ID, IMAGE_URL) VALUES (?, ?, ?)`,
-                [uuidv4(), roomId, imgUrl]
+                `INSERT INTO rooms (ID, property_id, ROOM_TYPE, DESCRIPTION, CAPACITY, TOTAL_ROOMS, PRICE_PER_NIGHT)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [roomId, propertyId, data.roomType, data.description, data.capacity, data.totalRooms, data.pricePerNight]
             );
+
+            for (const imgUrl of roomImageUrls) {
+                await connection.execute(
+                    `INSERT INTO room_images (ID, ROOM_ID, IMAGE_URL) VALUES (?, ?, ?)`,
+                    [uuidv4(), roomId, imgUrl]
+                );
+            }
+
+            for (const amenityId of validAmenities) {
+                await connection.execute(
+                    `INSERT INTO room_amenities (ID, ROOM_ID, AMENITY_ID) VALUES (?, ?, ?)`,
+                    [uuidv4(), roomId, amenityId]
+                );
+            }
+
+            await syncPropertyRoomStats(connection, propertyId);
+
+            await connection.commit();
+            await invalidatePropertyCache(propertyId);
+
+            req.flash("success", `Room "${data.roomType}" has been added!`);
+            return res.redirect(`/host/listings/${propertyId}`);
+        } catch (err) {
+            await safeRollback(connection);
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            return next(err);
+        } finally {
+            if (connection) connection.release();
         }
-
-        for (let amenityId of validAmenities) {
-            await connection.execute(
-                `INSERT INTO room_amenities (ID, ROOM_ID, AMENITY_ID) VALUES (?, ?, ?)`,
-                [uuidv4(), roomId, amenityId]
-            );
-        }
-
-        await syncPropertyRoomStats(connection, propertyId);
-
-        await connection.commit();
-
-        // Step 5: Clear Redis cache so updated rooms show on the public page
-        await clearListingCache(propertyId);
-
-        req.flash("success", `Room "${data.roomType}" has been added!`);
-        return res.redirect(`/host/listings/${propertyId}`);
-    } catch (err) {
-        await connection.rollback();
-        return next(err);
-    } finally {
-        connection.release();
     }
-});
+);
 
-// 10. GET /host/listings/:propertyId/rooms/:roomId/edit -> Show pre-filled edit form for a room
-hostRouter.get("/listings/:propertyId/rooms/:roomId/edit", async (req, res, next) => {
+// 10. GET /host/listings/:propertyId/rooms/:roomId/edit
+hostRouter.get("/listings/:propertyId/rooms/:roomId/edit", requireOwnedProperty, async (req, res, next) => {
     try {
         const propertyId = req.params.propertyId;
         const roomId = req.params.roomId;
-
-        // Step 1: Verify property belongs to the logged-in host
-        const propertyResult = await db.execute(
-            `SELECT ID, title FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-
-        if (propertyResult[0].length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-
-        const property = propertyResult[0][0];
-
-        // Step 2: Fetch room belonging to this property
-        const roomResult = await db.execute(
-            `SELECT * FROM rooms WHERE ID = ? AND property_id = ?`,
-            [roomId, propertyId]
-        );
-
-        if (roomResult[0].length === 0) {
+        if (!isValidUuid(roomId)) {
             req.flash("error", "Room not found.");
             return res.redirect(`/host/listings/${propertyId}`);
         }
 
-        const room = roomResult[0][0];
+        const property = req.ownedProperty;
+        const [roomRows] = await db.execute(
+            `SELECT * FROM rooms WHERE ID = ? AND property_id = ?`,
+            [roomId, propertyId]
+        );
+        if (roomRows.length === 0) {
+            req.flash("error", "Room not found.");
+            return res.redirect(`/host/listings/${propertyId}`);
+        }
+        const room = roomRows[0];
 
-        // Step 3: Fetch all room amenities
-        const allAmenitiesResult = await db.execute(
+        const [amenities] = await db.execute(
             `SELECT ID, NAME FROM amenities WHERE CATEGORY = 'room' ORDER BY NAME ASC`
         );
-        const amenities = allAmenitiesResult[0];
 
-        // Step 4: Fetch currently checked amenity IDs for this room
-        const selectedResult = await db.execute(
+        const [selectedRows] = await db.execute(
             `SELECT AMENITY_ID FROM room_amenities WHERE ROOM_ID = ?`,
             [roomId]
         );
-        const selectedAmenityIds = [];
-        for (let row of selectedResult[0]) {
-            selectedAmenityIds.push(row.AMENITY_ID);
-        }
+        const selectedAmenityIds = selectedRows.map((row) => row.AMENITY_ID);
 
-        // Step 5: Fetch existing room photos
-        const imagesResult = await db.execute(
+        const [roomImages] = await db.execute(
             `SELECT ID, IMAGE_URL FROM room_images WHERE ROOM_ID = ?`,
             [roomId]
         );
-        const roomImages = imagesResult[0];
 
         return res.render("host/rooms/edit", {
             title: `Edit ${room.ROOM_TYPE}`,
-            property: property,
-            room: room,
-            amenities: amenities,
-            selectedAmenityIds: selectedAmenityIds,
-            roomImages: roomImages,
+            property,
+            room,
+            amenities,
+            selectedAmenityIds,
+            roomImages,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 11. PUT /host/listings/:propertyId/rooms/:roomId -> Validate with Zod, upload optional photos, update room
-hostRouter.put("/listings/:propertyId/rooms/:roomId", uploadRoomImages, async (req, res, next) => {
-    const propertyId = req.params.propertyId;
-    const roomId = req.params.roomId;
-
-    // Step 1: Verify property ownership and room existence
-    try {
-        const propertyResult = await db.execute(
-            `SELECT ID FROM properties WHERE ID = ? AND HOST_ID = ?`,
-            [propertyId, req.user.ID]
-        );
-
-        if (propertyResult[0].length === 0) {
-            req.flash("error", "Property not found or you do not have access to it.");
-            return res.redirect("/host/dashboard");
-        }
-
-        const roomResult = await db.execute(
-            `SELECT ID FROM rooms WHERE ID = ? AND property_id = ?`,
-            [roomId, propertyId]
-        );
-
-        if (roomResult[0].length === 0) {
+// 11. PUT /host/listings/:propertyId/rooms/:roomId
+hostRouter.put(
+    "/listings/:propertyId/rooms/:roomId",
+    hostUploadLimiter,
+    requireOwnedProperty,
+    uploadRoomImages,
+    verifyCsrfToken,
+    async (req, res, next) => {
+        const propertyId = req.params.propertyId;
+        const roomId = req.params.roomId;
+        if (!isValidUuid(roomId)) {
             req.flash("error", "Room not found.");
             return res.redirect(`/host/listings/${propertyId}`);
         }
-    } catch (err) {
-        return next(err);
-    }
 
-    // Step 2: Validate room form inputs with Zod + regex
-    const validation = roomSchema.safeParse(req.body);
-
-    if (!validation.success) {
-        req.flash("error", validation.error.issues[0].message);
-        return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
-    }
-
-    const data = validation.data;
-    const requestedAmenities = getUniqueList(data.amenities);
-    const roomFiles = req.files || [];
-
-    // Step 3: Upload any newly added room photos to Cloudinary
-    const newRoomImageUrls = [];
-
-    try {
-        for (let file of roomFiles) {
-            const uploaded = await uploadBufferToCloudinary(file.buffer, "stayora/rooms");
-            newRoomImageUrls.push(uploaded.url);
+        const validation = roomSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
+            return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
         }
-    } catch (uploadErr) {
-        console.error("Cloudinary room image upload error:", uploadErr);
-        req.flash("error", "Failed to upload room images. Please try again.");
-        return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
-    }
 
-    // Step 4: Update room, add new images, refresh valid room amenities, and sync property stats
-    const connection = await db.getConnection();
+        const roomFiles = req.files || [];
+        if (!validateUploadedImages(roomFiles)) {
+            req.flash("error", "One or more uploaded files are not valid JPEG, PNG, WEBP, or AVIF images.");
+            return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
+        }
 
-    try {
-        await connection.beginTransaction();
-
-        const validAmenities = await filterValidAmenities(connection, requestedAmenities, "room");
-
-        await connection.execute(
-            `UPDATE rooms
-             SET ROOM_TYPE = ?,
-                 DESCRIPTION = ?,
-                 CAPACITY = ?,
-                 TOTAL_ROOMS = ?,
-                 PRICE_PER_NIGHT = ?
-             WHERE ID = ? AND property_id = ?`,
-            [data.roomType, data.description, data.capacity, data.totalRooms, data.pricePerNight, roomId, propertyId]
-        );
-
-        for (let imgUrl of newRoomImageUrls) {
-            await connection.execute(
-                `INSERT INTO room_images (ID, ROOM_ID, IMAGE_URL) VALUES (?, ?, ?)`,
-                [uuidv4(), roomId, imgUrl]
+        if (roomFiles.length > 0) {
+            const [imgCountRows] = await db.execute(
+                `SELECT COUNT(*) AS imgCount FROM room_images WHERE ROOM_ID = ?`,
+                [roomId]
             );
+            const currentCount = Number(imgCountRows[0].imgCount);
+            if (currentCount + roomFiles.length > MAX_ROOM_IMAGES_TOTAL) {
+                req.flash(
+                    "error",
+                    `A room can have at most ${MAX_ROOM_IMAGES_TOTAL} images (currently ${currentCount}).`
+                );
+                return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
+            }
         }
 
-        await connection.execute(
-            `DELETE FROM room_amenities WHERE ROOM_ID = ?`,
-            [roomId]
-        );
+        const data = validation.data;
+        const requestedAmenities = getUniqueList(data.amenities);
+        const newRoomImageUrls = [];
+        const uploadedPublicIds = [];
 
-        for (let amenityId of validAmenities) {
-            await connection.execute(
-                `INSERT INTO room_amenities (ID, ROOM_ID, AMENITY_ID) VALUES (?, ?, ?)`,
-                [uuidv4(), roomId, amenityId]
+        try {
+            for (const file of roomFiles) {
+                const uploaded = await uploadBufferToCloudinary(file.buffer, "stayora/rooms");
+                newRoomImageUrls.push(uploaded.url);
+                uploadedPublicIds.push(uploaded.publicId);
+            }
+        } catch (uploadErr) {
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            console.error("Cloudinary room image upload error:", uploadErr);
+            req.flash("error", "Failed to upload room images. Please try again.");
+            return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
+        }
+
+        let connection;
+        try {
+            connection = await db.getConnection();
+            await connection.beginTransaction();
+
+            // Lock room row FOR UPDATE to prevent reducing inventory/capacity below active bookings
+            const [roomRows] = await connection.execute(
+                `SELECT ID FROM rooms WHERE ID = ? AND property_id = ? FOR UPDATE`,
+                [roomId, propertyId]
             );
+            if (roomRows.length === 0) {
+                await connection.rollback();
+                await destroyCloudinaryAssets(uploadedPublicIds);
+                req.flash("error", "Room not found.");
+                return res.redirect(`/host/listings/${propertyId}`);
+            }
+
+            const [activeBookings] = await connection.execute(
+                `SELECT CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS
+                 FROM bookings
+                 WHERE ROOM_ID = ?
+                   AND STATUS IN ('pending', 'confirmed')
+                   AND CHECK_OUT_DATE >= CURDATE()`,
+                [roomId]
+            );
+
+            const peakOccupied = computePeakFutureOccupancy(activeBookings);
+            if (data.totalRooms < peakOccupied) {
+                await connection.rollback();
+                await destroyCloudinaryAssets(uploadedPublicIds);
+                req.flash(
+                    "error",
+                    `Cannot reduce room count to ${data.totalRooms} because ${peakOccupied} room(s) are already booked for upcoming dates.`
+                );
+                return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
+            }
+
+            let maxBookedGuests = 0;
+            for (const b of activeBookings) {
+                if (Number(b.GUESTS) > maxBookedGuests) maxBookedGuests = Number(b.GUESTS);
+            }
+            if (data.capacity < maxBookedGuests) {
+                await connection.rollback();
+                await destroyCloudinaryAssets(uploadedPublicIds);
+                req.flash(
+                    "error",
+                    `Cannot reduce room capacity to ${data.capacity} because an active booking already has ${maxBookedGuests} guest(s).`
+                );
+                return res.redirect(`/host/listings/${propertyId}/rooms/${roomId}/edit`);
+            }
+
+            const validAmenities = await filterValidAmenities(connection, requestedAmenities, "room");
+
+            await connection.execute(
+                `UPDATE rooms
+                 SET ROOM_TYPE = ?,
+                     DESCRIPTION = ?,
+                     CAPACITY = ?,
+                     TOTAL_ROOMS = ?,
+                     PRICE_PER_NIGHT = ?
+                 WHERE ID = ? AND property_id = ?`,
+                [data.roomType, data.description, data.capacity, data.totalRooms, data.pricePerNight, roomId, propertyId]
+            );
+
+            for (const imgUrl of newRoomImageUrls) {
+                await connection.execute(
+                    `INSERT INTO room_images (ID, ROOM_ID, IMAGE_URL) VALUES (?, ?, ?)`,
+                    [uuidv4(), roomId, imgUrl]
+                );
+            }
+
+            await connection.execute(`DELETE FROM room_amenities WHERE ROOM_ID = ?`, [roomId]);
+
+            for (const amenityId of validAmenities) {
+                await connection.execute(
+                    `INSERT INTO room_amenities (ID, ROOM_ID, AMENITY_ID) VALUES (?, ?, ?)`,
+                    [uuidv4(), roomId, amenityId]
+                );
+            }
+
+            await syncPropertyRoomStats(connection, propertyId);
+
+            await connection.commit();
+            await invalidatePropertyCache(propertyId);
+
+            req.flash("success", `Room "${data.roomType}" has been updated!`);
+            return res.redirect(`/host/listings/${propertyId}`);
+        } catch (err) {
+            await safeRollback(connection);
+            await destroyCloudinaryAssets(uploadedPublicIds);
+            return next(err);
+        } finally {
+            if (connection) connection.release();
         }
-
-        await syncPropertyRoomStats(connection, propertyId);
-
-        await connection.commit();
-
-        // Step 5: Clear Redis cache for this property
-        await clearListingCache(propertyId);
-
-        req.flash("success", `Room "${data.roomType}" has been updated!`);
-        return res.redirect(`/host/listings/${propertyId}`);
-    } catch (err) {
-        await connection.rollback();
-        return next(err);
-    } finally {
-        connection.release();
     }
-});
+);
 
-// 12. DELETE /host/listings/:propertyId/rooms/:roomId -> Delete a room safely
+// 12. DELETE /host/listings/:propertyId/rooms/:roomId -> Lock room FOR UPDATE & use same connection (no pool deadlock)
 hostRouter.delete("/listings/:propertyId/rooms/:roomId", async (req, res, next) => {
     const propertyId = req.params.propertyId;
     const roomId = req.params.roomId;
-    const connection = await db.getConnection();
+    if (!isValidUuid(propertyId) || !isValidUuid(roomId)) {
+        req.flash("error", "Property or room not found.");
+        return res.redirect("/host/dashboard");
+    }
 
+    let connection;
     try {
+        connection = await db.getConnection();
         await connection.beginTransaction();
 
-        // Step 1: Verify property belongs to host and room belongs to property
-        const propertyResult = await db.execute(
+        // Use connection.execute (NOT db.execute) to avoid connection-pool deadlock
+        const [propertyRows] = await connection.execute(
             `SELECT ID FROM properties WHERE ID = ? AND HOST_ID = ?`,
             [propertyId, req.user.ID]
         );
-
-        if (propertyResult[0].length === 0) {
+        if (propertyRows.length === 0) {
             await connection.rollback();
             req.flash("error", "Property not found or you do not have access to it.");
             return res.redirect("/host/dashboard");
         }
 
-        const roomResult = await connection.execute(
-            `SELECT ID, ROOM_TYPE FROM rooms WHERE ID = ? AND property_id = ?`,
+        // Lock room row FOR UPDATE to prevent concurrent booking TOCTOU race
+        const [roomRows] = await connection.execute(
+            `SELECT ID, ROOM_TYPE FROM rooms WHERE ID = ? AND property_id = ? FOR UPDATE`,
             [roomId, propertyId]
         );
-
-        if (roomResult[0].length === 0) {
+        if (roomRows.length === 0) {
             await connection.rollback();
             req.flash("error", "Room not found.");
             return res.redirect(`/host/listings/${propertyId}`);
         }
+        const roomType = roomRows[0].ROOM_TYPE;
 
-        const roomType = roomResult[0][0].ROOM_TYPE;
-
-        // Step 2: Block deletion if this room has active (pending or confirmed) bookings
-        const activeBookingsResult = await connection.execute(
+        const [activeBookingsRows] = await connection.execute(
             `SELECT COUNT(*) AS activeCount
              FROM bookings
-             WHERE ROOM_ID = ? AND STATUS IN ('pending', 'confirmed')`,
+             WHERE ROOM_ID = ?
+               AND STATUS IN ('pending', 'confirmed')
+               AND CHECK_OUT_DATE >= CURDATE()`,
             [roomId]
         );
-
-        if (activeBookingsResult[0][0].activeCount > 0) {
+        if (Number(activeBookingsRows[0].activeCount) > 0) {
             await connection.rollback();
-            req.flash("error", "Cannot delete this room because it has active bookings.");
+            req.flash("error", "Cannot delete this room because it has active upcoming bookings.");
             return res.redirect(`/host/listings/${propertyId}`);
         }
 
-        // Step 3: Delete reviews linked to past bookings of this room first (foreign key safety)
-        const bookingRows = await connection.execute(
+        const [bookingRows] = await connection.execute(
             `SELECT ID FROM bookings WHERE ROOM_ID = ?`,
             [roomId]
         );
-        for (let booking of bookingRows[0]) {
+        for (const booking of bookingRows) {
             await connection.execute(`DELETE FROM review WHERE BOOKING_ID = ?`, [booking.ID]);
         }
 
-        // Step 4: Delete bookings, room images, room amenities, and the room
         await connection.execute(`DELETE FROM bookings WHERE ROOM_ID = ?`, [roomId]);
         await connection.execute(`DELETE FROM room_images WHERE ROOM_ID = ?`, [roomId]);
         await connection.execute(`DELETE FROM room_amenities WHERE ROOM_ID = ?`, [roomId]);
@@ -1045,32 +1114,31 @@ hostRouter.delete("/listings/:propertyId/rooms/:roomId", async (req, res, next) 
         await syncPropertyRoomStats(connection, propertyId);
 
         await connection.commit();
-
-        // Step 5: Clear Redis cache for this property
-        await clearListingCache(propertyId);
+        await invalidatePropertyCache(propertyId);
 
         req.flash("success", `Room "${roomType}" has been deleted.`);
         return res.redirect(`/host/listings/${propertyId}`);
     } catch (err) {
-        await connection.rollback();
+        await safeRollback(connection);
         return next(err);
     } finally {
-        connection.release();
+        if (connection) connection.release();
     }
 });
 
-// Error-handling middleware for host routes (safe internal redirects only, never open redirect)
+// Error-handling middleware for host routes (safe internal redirects without double /edit)
 hostRouter.use((err, req, res, next) => {
     console.error("Host route error:", err);
 
-    // Pick a safe internal redirect path based on the route URL
     let safeRedirect = "/host/dashboard";
-    const pathOnly = req.path || "";
+    const pathOnly = (req.path || "").replace(/\/+$/, "");
 
     if (pathOnly === "/listings") {
         safeRedirect = "/host/listings/new";
     } else if (pathOnly.endsWith("/rooms")) {
         safeRedirect = `/host${pathOnly}/new`;
+    } else if (pathOnly.endsWith("/edit") || pathOnly.endsWith("/new")) {
+        safeRedirect = `/host${pathOnly}`;
     } else if (pathOnly.includes("/rooms/")) {
         safeRedirect = `/host${pathOnly}/edit`;
     } else if (pathOnly.startsWith("/listings/")) {

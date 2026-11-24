@@ -1,100 +1,80 @@
-// validating entered input before submitting it to Back-end server
-let form = document.querySelector('form');
-let enteredName = document.querySelector('#name');
-let enteredEmail = document.querySelector('#email');
-let enteredPass = document.querySelector('#password');
+// Client-side validation for signup form (scoped specifically to .auth-form so navbar search is untouched)
+const form = document.querySelector(".auth-form");
+const enteredName = document.querySelector("#name");
+const enteredEmail = document.querySelector("#email");
+const enteredPass = document.querySelector("#password");
 
-let errorName = document.querySelector('.error-name');
-let errorEmail = document.querySelector('.error-email');
-let errorPass = document.querySelector('.error-password');
+const errorName = document.querySelector(".error-name");
+const errorEmail = document.querySelector(".error-email");
+const errorPass = document.querySelector(".error-password");
 
+if (form && enteredName && enteredEmail && enteredPass) {
+    form.addEventListener("submit", function (e) {
+        const nameVal = enteredName.value.trim();
+        errorName.innerText = "";
 
+        if (nameVal.length < 2 || nameVal.length > 100) {
+            e.preventDefault();
+            errorName.innerText = "Name must be between 2 and 100 characters.";
+            enteredName.focus();
+            return;
+        }
+        if (/[<>]/.test(nameVal)) {
+            e.preventDefault();
+            errorName.innerText = "Name cannot contain < or > characters.";
+            enteredName.focus();
+            return;
+        }
 
+        const emailVal = enteredEmail.value.trim();
+        errorEmail.innerText = "";
 
-form.addEventListener( 'submit' , function(e) {
-    let nameVal = enteredName.value.trim();
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(emailVal) || emailVal.length > 254) {
+            e.preventDefault();
+            errorEmail.innerText = "Invalid email. Please enter a valid email address.";
+            enteredEmail.focus();
+            return;
+        }
 
-    errorName.innerText = ""; // clear previos entered error message each time before checking 
+        const passVal = enteredPass.value;
+        errorPass.innerText = "";
 
-    if( nameVal.length < 2 ){
-        e.preventDefault();
-        errorName.innerText = "Name should contain minimum of 2 characters";
-        enteredName.focus();
-        return;
-    };
-
-    let emailVal = enteredEmail.value.trim();
-
-    errorEmail.innerText = ""; // clear previous entered error email message 
-
-    let atPresent = false; 
-    let indexofAt;
-
-    let dotPresent = false;
-    let indexofDot;
-    
-
-    for ( let i = 0 ; i < emailVal.length ; i++){
-        if( emailVal[i] == '@' ){
-            atPresent = true;
-            indexofAt = i;
-        }else if ( emailVal[i] == '.'){
-            dotPresent = true;
-            indexofDot = i;
-        };
-    };
-
-    if ( !atPresent || !dotPresent || indexofDot < indexofAt ){
-        e.preventDefault();
-        errorEmail.innerText = "Invalid Email , Please Enter Valid Email";
-        enteredEmail.focus();
-        return;
-    };
-
-    let passVal = enteredPass.value// Never trim password of user as it is compliant with OWASP Security Standard
-
-    errorPass.innerText = "";
-
-    if( passVal.length < 8 ){
-        e.preventDefault();
-        errorPass.innerText = "Password must contain atleast 8 characters";
-        enteredPass.focus();
-        return;
-    }
-
-     // .test is a regex method which returns true or false it scans each word sent in its method and matches it with regex pattern
-
-     const hasLower = /[a-z]/.test(passVal ); // checks whether atleast one lower case present or not
-     const hasUpper  = /[A-Z]/.test(passVal );// checks whether atleast one upper case present or not 
-     const hasNumber = /[0-9]/.test(passVal);// checks whether atleast one number is present or not
-     const hasSpecial = /[@$!%*?&#]/.test(passVal);// checks whether atleast one special case present or not
-
-     if( !hasLower ){
-        e.preventDefault();
-        errorPass.innerText = "Password must contain atleast one small case character";
-        enteredPass.focus();
-        return;
-     };
-
-     if( !hasUpper ){
-        e.preventDefault();
-        errorPass.innerText = "Password must contain atleast one upper case character";
-        enteredPass.focus();
-        return;
-     };
-
-     if( !hasNumber ){
-        e.preventDefault();
-        errorPass.innerText = "Password must contain atleast one number";
-        enteredPass.focus();
-        return;
-     };
-
-     if( !hasSpecial ){
-        e.preventDefault();
-        errorPass.innerText = "Password must contain atleast one special character";
-        enteredPass.focus();
-        return;
-     };
-});
-
+        if (passVal.length < 8) {
+            e.preventDefault();
+            errorPass.innerText = "Password must contain at least 8 characters.";
+            enteredPass.focus();
+            return;
+        }
+        if (passVal.length > 72) {
+            e.preventDefault();
+            errorPass.innerText = "Password cannot exceed 72 characters.";
+            enteredPass.focus();
+            return;
+        }
+        if (!/[a-z]/.test(passVal)) {
+            e.preventDefault();
+            errorPass.innerText = "Password must contain at least one lowercase letter.";
+            enteredPass.focus();
+            return;
+        }
+        if (!/[A-Z]/.test(passVal)) {
+            e.preventDefault();
+            errorPass.innerText = "Password must contain at least one uppercase letter.";
+            enteredPass.focus();
+            return;
+        }
+        if (!/[0-9]/.test(passVal)) {
+            e.preventDefault();
+            errorPass.innerText = "Password must contain at least one number.";
+            enteredPass.focus();
+            return;
+        }
+        if (!/[@$!%*?&#]/.test(passVal)) {
+            e.preventDefault();
+            errorPass.innerText = "Password must contain at least one special character (@$!%*?&#).";
+            enteredPass.focus();
+            return;
+        }
+    });
+}

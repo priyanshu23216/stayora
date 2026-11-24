@@ -18,6 +18,7 @@
         class="host-form"
         id="newListingForm"
     >
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <!-- 1. Basic Information -->
         <div class="host-card">
             <h2 class="host-card-title">Basic Information</h2>
@@ -52,6 +53,7 @@
                     <label for="availabilityStatus">Availability Status</label>
                     <select id="availabilityStatus" name="availabilityStatus" required>
                         <option value="available" <% if (property.AVAILABILITY_STATUS === "available") { %>selected<% } %>>Available</option>
+                        <option value="reserved" <% if (property.AVAILABILITY_STATUS === "reserved") { %>selected<% } %>>Reserved</option>
                         <option value="unavailable" <% if (property.AVAILABILITY_STATUS === "unavailable") { %>selected<% } %>>Unavailable</option>
                     </select>
                 </div>

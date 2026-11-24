@@ -73,12 +73,20 @@
                 <a href="/admin/dashboard" class="nav-dashboard-btn">Admin Panel</a>
             <% } else if (currentUser && currentUser.ROLE === 'host') { %>
                 <a href="/host/dashboard" class="nav-dashboard-btn">My Dashboard</a>
+            <% } else if (currentUser) { %>
+                <form action="/listings/update/host" method="POST" style="display:inline;margin:0;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="nav-host-btn" style="cursor:pointer;">+ Become a Host</button>
+                </form>
             <% } else { %>
-                <a href="/listings/update/host" class="nav-host-btn">+ Become a Host</a>
+                <a href="/authenticate/login" class="nav-host-btn">+ Become a Host</a>
             <% } %>
 
             <% if (currentUser) { %>
-                <a href="/authenticate/logout" class="nav-btn nav-btn-outline">Log out</a>
+                <form action="/authenticate/logout" method="POST" style="display:inline;margin:0;">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="nav-btn nav-btn-outline" style="cursor:pointer;">Log out</button>
+                </form>
             <% } else { %>
                 <a href="/authenticate/login" class="nav-link">Log in</a>
                 <a href="/authenticate/signup" class="nav-btn nav-btn-primary">Sign up</a>

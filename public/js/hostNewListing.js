@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitBtn = document.getElementById("submitListingBtn");
 
     function renderFilePreviews(files, container, maxCount) {
-        container.innerHTML = "";
+        container.textContent = "";
         const selected = Array.from(files).slice(0, maxCount);
 
         for (const file of selected) {
@@ -33,7 +33,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (galleryInput && galleryPreview) {
         galleryInput.addEventListener("change", () => {
             if (galleryInput.files.length > 6) {
-                alert("You can upload up to 6 gallery images. Only the first 6 will be previewed.");
+                alert("You can upload up to 6 gallery images at a time. Only the first 6 have been kept.");
+                const dt = new DataTransfer();
+                Array.from(galleryInput.files)
+                    .slice(0, 6)
+                    .forEach((f) => dt.items.add(f));
+                galleryInput.files = dt.files;
             }
             renderFilePreviews(galleryInput.files, galleryPreview, 6);
         });
@@ -41,8 +46,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (form && submitBtn) {
         form.addEventListener("submit", () => {
+            const isEdit = submitBtn.textContent.toLowerCase().includes("save");
             submitBtn.disabled = true;
-            submitBtn.textContent = "Uploading & Publishing...";
+            submitBtn.textContent = isEdit ? "Saving Changes..." : "Uploading & Publishing...";
         });
     }
 });

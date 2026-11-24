@@ -1,43 +1,82 @@
 import { z } from "zod";
-// validating password input by zod and regex 
-const passwordRules = z.
-string().
-min( 8 , "Password must be at least 8 characters long" ).
-regex( /[A-Z]/ , "Password must contain at least one uppercase letter" ).
-regex( /[a-z]/ , "Password must contain at least one lowercase letter" ).
-regex( /[0-9]/ , "Password must contain at least one number" ).
-regex( /[@$!%*?&#]/ , "Password must contain at least a special letter");
 
+// Password rules (max 72 bytes to prevent bcrypt silent truncation and CPU DoS)
+const passwordRules = z
+    .string()
+    .min(8, "Password must be at least 8 characters long")
+    .max(72, "Password cannot exceed 72 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[@$!%*?&#]/, "Password must contain at least one special character (@$!%*?&#)");
 
-// exporting our defined input pattern object to validate incoming signup data in req.body
+// Signup validation
 export const signupSchema = z.object({
-    name : z.string().trim().min( 2 , "Name should contain minimum 2 characters"),
-    email : z.string().toLowerCase().trim().email("Enter a valid email,example - user@domain.com"),
-    password : passwordRules,
+    name: z
+        .string()
+        .trim()
+        .min(2, "Name should contain minimum 2 characters")
+        .max(100, "Name cannot exceed 100 characters")
+        .regex(/^[^<>]+$/, "Name cannot contain < or > characters"),
+    email: z
+        .string()
+        .toLowerCase()
+        .trim()
+        .max(254, "Email is too long")
+        .email("Enter a valid email, example - user@domain.com"),
+    password: passwordRules,
 });
 
-// exporting reset password input pattern to validate new entered pass by user
-
-export const resetPassword = z.object({password : passwordRules});
-
-
-export const loginCheck = z.object ({ // to just verify login input format
-    email : z.string().toLowerCase().trim().email("Enter a valid email,example - user@domain.com"),
-    password : z.string().min(1 , "Invalid password") // password format check is required coz if attacker sends data as raw JSON request via Postman/curl etc
+// Reset password validation
+export const resetPassword = z.object({
+    password: passwordRules,
 });
 
+// Login validation
+export const loginCheck = z.object({
+    email: z
+        .string()
+        .toLowerCase()
+        .trim()
+        .max(254, "Email is too long")
+        .email("Enter a valid email, example - user@domain.com"),
+    password: z.string().min(1, "Invalid password").max(72, "Invalid password"),
+});
+
+// OTP verification validation
 export const otpValidator = z.object({
-    email : z.string().toLowerCase().trim().email("Some error occured please signup again"),
-    otp : z.string().trim().regex(/^[0-9]{6}$/, "OTP must be a 6 digit number") // character class[ 0 - 9 ] checks each digit of input OTP should be between 0-9 and { 6 } checks whether input OTP is of  numerical 6 digit b/w 0 to 9  or not ^ and $ marks the start and end of input otp respectively. 
-}); 
-// to validate email input for reset password route
-export const emailValidator = z.object({
-    email : z.string().toLowerCase().trim().email("Enter a valid email,example - user@domain.com")
+    email: z
+        .string()
+        .toLowerCase()
+        .trim()
+        .max(254, "Email is too long")
+        .email("Some error occurred, please sign up again"),
+    otp: z
+        .string()
+        .trim()
+        .regex(/^[0-9]{6}$/, "OTP must be a 6-digit number"),
 });
 
-// to validate new property listing form data from host dashboard
+// Email-only validation (forgot password / resend OTP)
+export const emailValidator = z.object({
+    email: z
+        .string()
+        .toLowerCase()
+        .trim()
+        .max(254, "Email is too long")
+        .email("Enter a valid email, example - user@domain.com"),
+});
+
 const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
+// Strict allowed cancellation policies (prevents misleading free-text policies)
+export const ALLOWED_CANCELLATION_POLICIES = [
+    "Flexible — Free cancellation up to 24 hours before check-in",
+    "Moderate — 100% refund up to 5 days, 60% up to 3 days, 50% up to 48 hours before check-in",
+    "Strict — 50% refund up to 7 days before check-in",
+];
+
+// New property listing form validation
 export const newListingSchema = z.object({
     title: z
         .string()
@@ -137,12 +176,9 @@ export const newListingSchema = z.object({
         .trim()
         .regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, "Please enter a valid check-out time."),
 
-    cancellationPolicy: z
-        .string()
-        .trim()
-        .min(5, "Please select a valid cancellation policy.")
-        .max(200, "Cancellation policy is too long.")
-        .regex(/^[^<>]+$/, "Cancellation policy contains invalid characters."),
+    cancellationPolicy: z.enum(ALLOWED_CANCELLATION_POLICIES, {
+        message: "Please select a valid cancellation policy.",
+    }),
 
     amenities: z
         .union([
@@ -152,15 +188,15 @@ export const newListingSchema = z.object({
         .optional(),
 });
 
-// to validate edit property form data (same rules as new listing + availability status)
+// Edit property form validation
 export const editListingSchema = newListingSchema.extend({
     availabilityStatus: z.enum(
-        ["available", "unavailable"],
+        ["available", "reserved", "unavailable"],
         { message: "Please select a valid availability status." }
     ),
 });
 
-// to validate add and edit room form data inside a property
+// Add/edit room form validation
 export const roomSchema = z.object({
     roomType: z
         .string()
@@ -201,7 +237,37 @@ export const roomSchema = z.object({
         .optional(),
 });
 
-// to validate admin rejection reason when rejecting a property
+// Strict YYYY-MM-DD calendar date check (rejects rollover dates like 2026-02-30)
+function isStrictIsoDate(val) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return false;
+    }
+    const [y, m, d] = val.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return (
+        dt.getUTCFullYear() === y &&
+        dt.getUTCMonth() === m - 1 &&
+        dt.getUTCDate() === d
+    );
+}
+
+// Booking creation form validation
+export const bookingSchema = z.object({
+    checkIn: z
+        .string()
+        .trim()
+        .refine(isStrictIsoDate, "Please enter a valid check-in date (YYYY-MM-DD)."),
+    checkOut: z
+        .string()
+        .trim()
+        .refine(isStrictIsoDate, "Please enter a valid check-out date (YYYY-MM-DD)."),
+    guests: z
+        .union([z.string().trim().regex(/^\d+$/, "Guests must be a valid whole number."), z.number().int()])
+        .transform((v) => Number(v))
+        .refine((n) => Number.isInteger(n) && n >= 1 && n <= 100, "Guests must be between 1 and 100."),
+});
+
+// Admin rejection reason validation
 export const rejectPropertySchema = z.object({
     rejectionReason: z
         .string()
@@ -211,7 +277,7 @@ export const rejectPropertySchema = z.object({
         .regex(/^[^<>]+$/, "Rejection reason cannot contain < or > characters."),
 });
 
-// to validate optional propertyId passed when admin verifies a host
+// Admin host verify optional propertyId redirect validation
 export const hostVerifySchema = z.object({
     propertyId: z
         .string()

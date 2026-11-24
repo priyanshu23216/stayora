@@ -1,6 +1,6 @@
 import express from "express";
 import db from "../config/db.js";
-import { isLoggedIn } from "../middlewares/auth.js";
+import { isLoggedIn, isValidUuid } from "../middlewares/auth.js";
 import { sendBookingCancellation } from "../utils/mailer.js";
 import {
     calculateCancellationDetails,
@@ -9,15 +9,26 @@ import {
 
 const guestRouter = express.Router();
 
-// Protect all /guest/* routes: any logged-in user (guest, host, or admin) can view & manage their own bookings
+// Protect all /guest/* routes: any logged-in user can view & manage their own bookings
 guestRouter.use(isLoggedIn);
+
+function formatLocalSqlTimestamp(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    const hh = String(dateObj.getHours()).padStart(2, "0");
+    const mm = String(dateObj.getMinutes()).padStart(2, "0");
+    const ss = String(dateObj.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
 
 // 1. GET /guest/dashboard -> Show logged-in user's personal bookings with KPIs, tabs, and pagination
 guestRouter.get("/dashboard", async (req, res, next) => {
     try {
         const userId = req.user.ID;
 
-        // Step 1: Auto-sync completed stays whose check-out date + time has passed
+        // Step 1: Auto-sync completed stays using consistent Node local timestamp (avoids DB/Node timezone drift)
+        const nowTimestamp = formatLocalSqlTimestamp(new Date());
         await db.execute(
             `UPDATE bookings
              JOIN rooms ON bookings.ROOM_ID = rooms.ID
@@ -25,75 +36,55 @@ guestRouter.get("/dashboard", async (req, res, next) => {
              SET bookings.STATUS = 'completed'
              WHERE bookings.USER_ID = ?
                AND bookings.STATUS = 'confirmed'
-               AND TIMESTAMP(bookings.CHECK_OUT_DATE, COALESCE(properties.check_out_time, '11:00:00')) <= NOW()`,
-            [userId]
+               AND TIMESTAMP(bookings.CHECK_OUT_DATE, COALESCE(properties.check_out_time, '11:00:00')) <= ?`,
+            [userId, nowTimestamp]
         );
 
         // Step 2: Read optional tab filter (?status=all | upcoming | completed | cancelled)
-        let status = req.query.status;
+        let status = typeof req.query.status === "string" ? req.query.status : "all";
         if (status !== "upcoming" && status !== "completed" && status !== "cancelled") {
             status = "all";
         }
 
         // Step 3: Read page number safely (10 bookings per page)
-        let page = parseInt(req.query.page, 10);
-        if (!page || page < 1) {
+        let page = parseInt(typeof req.query.page === "string" ? req.query.page : "1", 10);
+        if (!Number.isInteger(page) || page < 1) {
             page = 1;
         }
         const limit = 10;
 
-        // Step 4: Fetch KPI summary counts for this user's bookings
-        const upcomingCountResult = await db.execute(
-            `SELECT COUNT(*) AS total
-             FROM bookings
-             WHERE USER_ID = ? AND STATUS IN ('pending', 'confirmed')`,
+        // Step 4: Fetch KPI summary counts
+        const [upcomingCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total FROM bookings WHERE USER_ID = ? AND STATUS IN ('pending', 'confirmed')`,
             [userId]
         );
-        const completedCountResult = await db.execute(
-            `SELECT COUNT(*) AS total
-             FROM bookings
-             WHERE USER_ID = ? AND STATUS = 'completed'`,
+        const [completedCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total FROM bookings WHERE USER_ID = ? AND STATUS = 'completed'`,
             [userId]
         );
-        const cancelledCountResult = await db.execute(
-            `SELECT COUNT(*) AS total
-             FROM bookings
-             WHERE USER_ID = ? AND STATUS = 'cancelled'`,
+        const [cancelledCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total FROM bookings WHERE USER_ID = ? AND STATUS = 'cancelled'`,
             [userId]
         );
-
-        const upcomingTotal = upcomingCountResult[0][0].total;
-        const completedTotal = completedCountResult[0][0].total;
-        const cancelledTotal = cancelledCountResult[0][0].total;
-        const allTotal = upcomingTotal + completedTotal + cancelledTotal;
 
         const stats = {
-            all: allTotal,
-            upcoming: upcomingTotal,
-            completed: completedTotal,
-            cancelled: cancelledTotal,
+            upcoming: Number(upcomingCountRows[0].total),
+            completed: Number(completedCountRows[0].total),
+            cancelled: Number(cancelledCountRows[0].total),
         };
+        stats.all = stats.upcoming + stats.completed + stats.cancelled;
 
-        // Step 5: Calculate total pages and keep current page within valid bounds
         let activeTotal = stats.all;
-        if (status === "upcoming") {
-            activeTotal = stats.upcoming;
-        } else if (status === "completed") {
-            activeTotal = stats.completed;
-        } else if (status === "cancelled") {
-            activeTotal = stats.cancelled;
-        }
+        if (status === "upcoming") activeTotal = stats.upcoming;
+        else if (status === "completed") activeTotal = stats.completed;
+        else if (status === "cancelled") activeTotal = stats.cancelled;
 
-        let totalPages = Math.ceil(activeTotal / limit);
-        if (totalPages < 1) {
-            totalPages = 1;
-        }
+        const totalPages = Math.max(1, Math.ceil(activeTotal / limit));
         if (page > totalPages) {
             page = totalPages;
         }
         const offset = (page - 1) * limit;
 
-        // Step 6: Fetch paginated bookings joined with room, property, and host contact details
         let statusCondition = "";
         if (status === "upcoming") {
             statusCondition = "AND bookings.STATUS IN ('pending', 'confirmed')";
@@ -103,7 +94,8 @@ guestRouter.get("/dashboard", async (req, res, next) => {
             statusCondition = "AND bookings.STATUS = 'cancelled'";
         }
 
-        const bookingsResult = await db.execute(
+        // Use snapshotted bookings.cancellation_policy (fallback to properties.cancellation_policy for legacy rows)
+        const [rawBookings] = await db.execute(
             `SELECT bookings.ID,
                     bookings.ROOM_ID,
                     bookings.CHECK_IN_DATE,
@@ -121,7 +113,7 @@ guestRouter.get("/dashboard", async (req, res, next) => {
                     properties.state AS property_state,
                     properties.check_in_time,
                     properties.check_out_time,
-                    properties.cancellation_policy,
+                    COALESCE(bookings.cancellation_policy, properties.cancellation_policy) AS cancellation_policy,
                     host.NAME AS host_name,
                     host.EMAIL AS host_email
              FROM bookings
@@ -134,45 +126,51 @@ guestRouter.get("/dashboard", async (req, res, next) => {
              LIMIT ? OFFSET ?`,
             [userId, String(limit), String(offset)]
         );
-        const rawBookings = bookingsResult[0];
 
-        // Step 7: Prepare display dates, nights count, and cancellation info for EJS
-        const bookings = [];
-        for (let item of rawBookings) {
-            const diffMs = new Date(item.CHECK_OUT_DATE) - new Date(item.CHECK_IN_DATE);
+        const bookings = rawBookings.map((item) => {
+            const diffMs = new Date(`${item.CHECK_OUT_DATE}T00:00:00`) - new Date(`${item.CHECK_IN_DATE}T00:00:00`);
             const nights = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
             const cancellation = calculateCancellationDetails(item);
 
-            bookings.push({
+            return {
                 ...item,
-                nights: nights,
+                nights,
                 checkInDisplay: formatDisplayDate(item.CHECK_IN_DATE),
                 checkOutDisplay: formatDisplayDate(item.CHECK_OUT_DATE),
-                cancellation: cancellation,
-            });
-        }
+                cancellation,
+            };
+        });
 
         return res.render("guest/dashboard", {
             title: "My Bookings",
-            stats: stats,
-            status: status,
-            bookings: bookings,
+            stats,
+            status,
+            bookings,
             currentPage: page,
-            totalPages: totalPages,
+            totalPages,
         });
     } catch (err) {
         return next(err);
     }
 });
 
-// 2. PATCH /guest/bookings/:bookingId/cancel -> Cancel user's own upcoming booking
+// 2. PATCH /guest/bookings/:bookingId/cancel -> Atomically cancel user's own upcoming booking
 guestRouter.patch("/bookings/:bookingId/cancel", async (req, res, next) => {
-    try {
-        const bookingId = req.params.bookingId;
-        const userId = req.user.ID;
+    const bookingId = req.params.bookingId;
+    if (!isValidUuid(bookingId)) {
+        req.flash("error", "Invalid booking reference.");
+        return res.redirect("/guest/dashboard");
+    }
 
-        // Step 1: Fetch booking ONLY if it belongs to logged-in user (IDOR protection)
-        const bookingResult = await db.execute(
+    const userId = req.user.ID;
+    let connection;
+
+    try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        // Lock booking row FOR UPDATE and verify ownership (IDOR protection)
+        const [rows] = await connection.execute(
             `SELECT bookings.ID,
                     bookings.USER_ID,
                     bookings.CHECK_IN_DATE,
@@ -184,60 +182,58 @@ guestRouter.patch("/bookings/:bookingId/cancel", async (req, res, next) => {
                     properties.title AS property_title,
                     properties.check_in_time,
                     properties.check_out_time,
-                    properties.cancellation_policy
+                    COALESCE(bookings.cancellation_policy, properties.cancellation_policy) AS cancellation_policy
              FROM bookings
              JOIN rooms ON bookings.ROOM_ID = rooms.ID
              JOIN properties ON rooms.property_id = properties.ID
-             WHERE bookings.ID = ? AND bookings.USER_ID = ?`,
+             WHERE bookings.ID = ? AND bookings.USER_ID = ?
+             FOR UPDATE`,
             [bookingId, userId]
         );
-        const rows = bookingResult[0];
 
         if (rows.length === 0) {
+            await connection.rollback();
             req.flash("error", "Booking not found or you do not have permission to cancel it.");
             return res.redirect("/guest/dashboard");
         }
 
         const booking = rows[0];
-
-        // Step 2: Check eligibility and calculate refund from property's cancellation policy
         const cancellation = calculateCancellationDetails(booking);
 
         if (!cancellation.canCancel) {
+            await connection.rollback();
             req.flash("error", cancellation.refundNote);
             return res.redirect("/guest/dashboard");
         }
 
-        // Step 3: Atomically mark booking 'cancelled' (room becomes available again immediately)
-        const updateResult = await db.execute(
+        const [updateResult] = await connection.execute(
             `UPDATE bookings
              SET STATUS = 'cancelled'
              WHERE ID = ? AND USER_ID = ? AND STATUS IN ('pending', 'confirmed')`,
             [bookingId, userId]
         );
 
-        if (updateResult[0].affectedRows === 0) {
+        if (updateResult.affectedRows === 0) {
+            await connection.rollback();
             req.flash("error", "This booking has already been cancelled or completed.");
             return res.redirect("/guest/dashboard");
         }
 
-        // Step 4: Send cancellation confirmation email with exact refund details
-        try {
-            await sendBookingCancellation(req.user.EMAIL, {
-                bookingId: booking.ID,
-                hotelName: booking.property_title,
-                roomType: booking.ROOM_TYPE,
-                checkIn: formatDisplayDate(booking.CHECK_IN_DATE),
-                checkOut: formatDisplayDate(booking.CHECK_OUT_DATE),
-                totalPrice: booking.TOTAL_AMOUNT,
-                refundPercent: cancellation.refundPercent,
-                refundAmount: cancellation.refundAmount,
-                refundNote: cancellation.refundNote,
-            });
-        } catch (emailErr) {
-            // Do not fail an already-cancelled booking if email delivery fails
+        await connection.commit();
+
+        sendBookingCancellation(req.user.EMAIL, {
+            bookingId: booking.ID,
+            hotelName: booking.property_title,
+            roomType: booking.ROOM_TYPE,
+            checkIn: formatDisplayDate(booking.CHECK_IN_DATE),
+            checkOut: formatDisplayDate(booking.CHECK_OUT_DATE),
+            totalPrice: booking.TOTAL_AMOUNT,
+            refundPercent: cancellation.refundPercent,
+            refundAmount: cancellation.refundAmount,
+            refundNote: cancellation.refundNote,
+        }).catch((emailErr) => {
             console.error("Booking cancellation email error:", emailErr);
-        }
+        });
 
         if (cancellation.refundAmount > 0) {
             req.flash(
@@ -253,7 +249,18 @@ guestRouter.patch("/bookings/:bookingId/cancel", async (req, res, next) => {
 
         return res.redirect("/guest/dashboard?status=cancelled");
     } catch (err) {
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rbErr) {
+                console.error("Guest cancel rollback error:", rbErr);
+            }
+        }
         return next(err);
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 });
 

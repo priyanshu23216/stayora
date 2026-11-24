@@ -26,6 +26,7 @@
                     method="POST"
                     class="host-delete-form"
                 >
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button type="submit" class="admin-approve-btn">Approve Property</button>
                 </form>
             <% } %>
@@ -113,6 +114,7 @@
                         method="POST"
                         class="admin-verify-form"
                     >
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="hidden" name="propertyId" value="<%= property.ID %>">
                         <% if (host.is_host_verified === 1) { %>
                             <button type="submit" class="admin-unverify-btn">Remove Verified Badge</button>
@@ -251,6 +253,7 @@
             class="admin-reject-form"
             id="rejectPropertyForm"
         >
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="admin-reject-field">
                 <label for="rejectionReason">Rejection Reason</label>
                 <textarea

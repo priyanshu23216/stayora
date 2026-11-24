@@ -31,6 +31,7 @@
                 data-delete-message="This will permanently delete this property, all of its photos, and every room listed under it. This action cannot be undone."
                 data-confirm-label="Delete Property"
             >
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="host-delete-btn">Delete Property</button>
             </form>
         </div>
@@ -165,6 +166,7 @@
                                         data-delete-message="This will permanently remove this room type and its photos from <%= property.title %>. This action cannot be undone."
                                         data-confirm-label="Delete Room"
                                     >
+                                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                         <button type="submit" class="host-room-delete-btn">Delete</button>
                                     </form>
                                 </div>

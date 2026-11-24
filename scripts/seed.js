@@ -240,6 +240,10 @@ async function batchInsert(conn, sql, rows) {
 }
 
 async function seed() {
+    if (process.env.NODE_ENV === "production") {
+        console.error("Refusing to run seed script in production environment.");
+        process.exit(1);
+    }
     const start = Date.now();
     const conn = await db.getConnection();
 

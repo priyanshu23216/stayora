@@ -27,3 +27,18 @@ export function uploadBufferToCloudinary(fileBuffer, folder = "stayora/propertie
         stream.end(fileBuffer);
     });
 }
+
+/**
+ * Best-effort cleanup for uploaded Cloudinary images (e.g., on DB rollback or delete).
+ * @param {string[]} publicIds
+ */
+export async function destroyCloudinaryAssets(publicIds) {
+    if (!Array.isArray(publicIds) || publicIds.length === 0) {
+        return;
+    }
+    await Promise.allSettled(
+        publicIds
+            .filter((id) => typeof id === "string" && id.length > 0)
+            .map((publicId) => cloudinary.uploader.destroy(publicId, { resource_type: "image" }))
+    );
+}

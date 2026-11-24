@@ -1,40 +1,41 @@
 <!-- 1. Filter Bar -->
 <section class="listings-filters">
     <form action="/listings" method="GET" class="filter-form">
+        <% if (locals.searchQuery) { %>
+            <input type="hidden" name="city" value="<%= locals.searchQuery %>">
+        <% } %>
+
         <div class="filter-group">
             <label for="type">Property Type</label>
-            <select name="type" id="type" required>
-                <option value="" disabled selected>Select Type</option>
-                <option value="All Types">All Types</option>
-                <option value="hotel">Hotel</option>
-                <option value="resort">Resort</option>
-                <option value="villa">Villa</option>
-                <option value="apartment">Apartment</option>
-                <option value="guesthouse">Guesthouse</option>
-                <option value="hostel">Hostel</option>
+            <select name="type" id="type">
+                <option value="All Types" <%= (!locals.type || locals.type === 'All Types') ? 'selected' : '' %>>All Types</option>
+                <option value="hotel" <%= locals.type === 'hotel' ? 'selected' : '' %>>Hotel</option>
+                <option value="resort" <%= locals.type === 'resort' ? 'selected' : '' %>>Resort</option>
+                <option value="villa" <%= locals.type === 'villa' ? 'selected' : '' %>>Villa</option>
+                <option value="apartment" <%= locals.type === 'apartment' ? 'selected' : '' %>>Apartment</option>
+                <option value="guesthouse" <%= locals.type === 'guesthouse' ? 'selected' : '' %>>Guesthouse</option>
+                <option value="hostel" <%= locals.type === 'hostel' ? 'selected' : '' %>>Hostel</option>
             </select>
         </div>
 
         <div class="filter-group">
             <label for="price">Price</label>
-            <select name="price" id="price" required>
-                <option value="" disabled selected>Select Price Range</option>
-                <option value="Any Price">Any Price</option>
-                <option value="under_3000">Under ₹3,000</option>
-                <option value="3000_5000">₹3,000 - ₹5,000</option>
-                <option value="5000_10000">₹5,000 - ₹10,000</option>
-                <option value="10000_20000">₹10,000 - ₹20,000</option>
-                <option value="above_20000">₹20,000+</option>
+            <select name="price" id="price">
+                <option value="Any Price" <%= (!locals.price || locals.price === 'Any Price') ? 'selected' : '' %>>Any Price</option>
+                <option value="under_3000" <%= locals.price === 'under_3000' ? 'selected' : '' %>>Under ₹3,000</option>
+                <option value="3000_5000" <%= locals.price === '3000_5000' ? 'selected' : '' %>>₹3,000 - ₹5,000</option>
+                <option value="5000_10000" <%= locals.price === '5000_10000' ? 'selected' : '' %>>₹5,000 - ₹10,000</option>
+                <option value="10000_20000" <%= locals.price === '10000_20000' ? 'selected' : '' %>>₹10,000 - ₹20,000</option>
+                <option value="above_20000" <%= locals.price === 'above_20000' ? 'selected' : '' %>>₹20,000+</option>
             </select>
         </div>
 
         <div class="filter-group">
             <label for="sort">Sort By</label>
-            <select name="sort" id="sort" required>
-                <option value="" disabled selected>Select Sort</option>
-                <option value="Low to High">Price: Low to High</option>
-                <option value="High to Low">Price: High to Low</option>
-                <option value="Top Rated">Top Rated</option>
+            <select name="sort" id="sort">
+                <option value="Low to High" <%= (!locals.sort || locals.sort === 'Low to High') ? 'selected' : '' %>>Price: Low to High</option>
+                <option value="High to Low" <%= locals.sort === 'High to Low' ? 'selected' : '' %>>Price: High to Low</option>
+                <option value="Top Rated" <%= locals.sort === 'Top Rated' ? 'selected' : '' %>>Top Rated</option>
             </select>
         </div>
 
@@ -72,15 +73,26 @@
     <% } %>
 </section>
 
-<!-- 3. Pagination Buttons -->
+<!-- 3. Pagination Buttons (URL-encoded query params) -->
+<%
+    const buildPageUrl = (targetPage) => {
+        const params = new URLSearchParams();
+        if (locals.searchQuery) params.set("city", locals.searchQuery);
+        if (locals.type) params.set("type", locals.type);
+        if (locals.price) params.set("price", locals.price);
+        if (locals.sort) params.set("sort", locals.sort);
+        params.set("page", String(targetPage));
+        return `/listings?${params.toString()}`;
+    };
+%>
 <nav class="pagination" aria-label="Listings pagination">
     <% if (currentPage > 1) { %>
-        <a href="/listings?city=<%= locals.searchQuery || "" %>&type=<%= locals.type || "" %>&price=<%= locals.price || "" %>&sort=<%= locals.sort || "" %>&page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+        <a href="<%= buildPageUrl(currentPage - 1) %>" class="pagination-btn">&larr; Previous</a>
     <% } %>
 
     <span class="pagination-info">Page <%= currentPage %> of <%= totalPages %></span>
 
     <% if (currentPage < totalPages) { %>
-        <a href="/listings?city=<%= locals.searchQuery || "" %>&type=<%= locals.type || "" %>&price=<%= locals.price || "" %>&sort=<%= locals.sort || "" %>&page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+        <a href="<%= buildPageUrl(currentPage + 1) %>" class="pagination-btn">Next &rarr;</a>
     <% } %>
 </nav>

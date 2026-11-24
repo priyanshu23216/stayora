@@ -8,6 +8,7 @@
             <h2 class="auth-title">Welcome to Stayora</h2>
 
             <form class="auth-form" action="/authenticate/signup/add" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="auth-field">
                     <label for="name">Name</label>
                     <input
