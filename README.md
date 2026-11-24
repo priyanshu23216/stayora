@@ -362,7 +362,7 @@ All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.u
 <div align="center">
 
   <p>
-    <strong>Stayora</strong> — Your Stay, Simplified.
+    <strong>Stayora</strong> - Your Stay, Simplified.
   </p>
 
   <p>
@@ -370,7 +370,7 @@ All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.u
   </p>
 
   <p>
-    <strong>Founder and Developer</strong> — <a href="https://github.com/priyanshu23216" target="_blank"><strong>Priyanshu Singh</strong></a>
+    <strong>Founder and Developer</strong> - <a href="https://github.com/priyanshu23216" target="_blank"><strong>Priyanshu Singh</strong></a>
   </p>
 
 </div>
