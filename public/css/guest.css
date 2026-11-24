@@ -1,0 +1,528 @@
+/* ==========================================================================
+   Stayora My Bookings / Guest Dashboard (guest.css) — Mobile-First Apple UI
+   ========================================================================== */
+
+.guest-page {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 16px 88px;
+    font-family: var(--apple-font-text);
+    color: var(--apple-on-surface);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 1. Page Header */
+.guest-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.guest-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6e6e73;
+    background-color: var(--apple-surface);
+    padding: 5px 12px;
+    border-radius: 9999px;
+    margin-bottom: 10px;
+}
+
+.guest-title {
+    font-family: var(--apple-font-display);
+    font-size: clamp(28px, 3.8vw, 42px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    margin: 0 0 8px;
+    color: var(--apple-on-surface);
+}
+
+.guest-subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #6e6e73;
+}
+
+.guest-explore-btn,
+.guest-primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-neutral);
+    background-color: var(--apple-primary);
+    text-decoration: none;
+    padding: 11px 22px;
+    border-radius: 9999px;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.22);
+    transition: background-color 0.18s ease, transform 0.14s ease, box-shadow 0.18s ease;
+}
+
+.guest-explore-btn:hover,
+.guest-primary-btn:hover {
+    background-color: var(--apple-secondary);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.3);
+    transform: translateY(-1px);
+}
+
+/* 2. KPI Summary Cards */
+.guest-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.guest-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.03);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.guest-kpi-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+}
+
+.guest-kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #6e6e73;
+}
+
+.guest-kpi-value {
+    font-family: var(--apple-font-display);
+    font-size: clamp(26px, 3vw, 34px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    color: var(--apple-on-surface);
+    line-height: 1.1;
+}
+
+.guest-kpi-upcoming .guest-kpi-value {
+    color: var(--apple-primary);
+}
+
+.guest-kpi-completed .guest-kpi-value {
+    color: #047857;
+}
+
+.guest-kpi-cancelled .guest-kpi-value {
+    color: var(--apple-error);
+}
+
+/* 3. Apple Segmented Control Tabs */
+.guest-tabs-wrap {
+    margin-bottom: 26px;
+    overflow-x: auto;
+}
+
+.guest-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 9999px;
+}
+
+.guest-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #6e6e73;
+    text-decoration: none;
+    padding: 9px 16px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.guest-tab:hover {
+    color: var(--apple-on-surface);
+}
+
+.guest-tab span {
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #86868b;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+.guest-tab.is-active {
+    background-color: var(--apple-neutral);
+    color: var(--apple-on-surface);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.guest-tab.is-active span {
+    color: var(--apple-on-surface);
+    background-color: var(--apple-surface);
+}
+
+/* 4. Empty State */
+.guest-empty {
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 24px;
+    padding: 52px 24px;
+    text-align: center;
+}
+
+.guest-empty h2 {
+    margin: 0 0 8px;
+    font-family: var(--apple-font-display);
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.guest-empty p {
+    margin: 0 0 22px;
+    font-size: 14.5px;
+    color: #6e6e73;
+}
+
+/* 5. Booking Cards */
+.guest-bookings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.guest-booking-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.035);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.guest-booking-card:hover {
+    border-color: rgba(0, 0, 0, 0.13);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.guest-booking-media {
+    position: relative;
+    min-height: 200px;
+    background-color: var(--apple-surface);
+}
+
+.guest-booking-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.guest-status-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    backdrop-filter: saturate(160%) blur(10px);
+    -webkit-backdrop-filter: saturate(160%) blur(10px);
+}
+
+.guest-status-confirmed,
+.guest-status-pending {
+    background-color: rgba(239, 246, 255, 0.94);
+    color: var(--apple-primary);
+}
+
+.guest-status-ongoing {
+    background-color: rgba(0, 113, 227, 0.94);
+    color: #ffffff;
+}
+
+.guest-status-completed {
+    background-color: rgba(236, 253, 245, 0.94);
+    color: #047857;
+}
+
+.guest-status-cancelled {
+    background-color: rgba(254, 242, 242, 0.94);
+    color: var(--apple-error);
+}
+
+.guest-booking-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.guest-booking-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.guest-booking-location {
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6e6e73;
+}
+
+.guest-booking-title {
+    margin: 0 0 4px;
+    font-family: var(--apple-font-display);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--apple-on-surface);
+}
+
+.guest-booking-room {
+    margin: 0;
+    font-size: 13.5px;
+    color: #515154;
+}
+
+.guest-booking-price-box {
+    text-align: left;
+}
+
+.guest-booking-price-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #86868b;
+}
+
+.guest-booking-price {
+    font-family: var(--apple-font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--apple-on-surface);
+    font-variant-numeric: tabular-nums;
+}
+
+.guest-booking-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 14px 16px;
+    background-color: var(--apple-surface);
+    border-radius: 14px;
+}
+
+.guest-meta-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #86868b;
+    margin-bottom: 2px;
+}
+
+.guest-meta-value {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-on-surface);
+}
+
+.guest-host-link {
+    color: var(--apple-primary);
+    text-decoration: none;
+}
+
+.guest-host-link:hover {
+    text-decoration: underline;
+}
+
+.guest-ref {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+}
+
+.guest-policy-line {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6e6e73;
+}
+
+.guest-booking-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding-top: 2px;
+}
+
+.guest-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-on-surface);
+    background-color: var(--apple-surface);
+    text-decoration: none;
+    padding: 9px 18px;
+    border-radius: 9999px;
+    transition: background-color 0.16s ease;
+}
+
+.guest-btn-secondary:hover {
+    background-color: #e8e8ed;
+}
+
+.guest-btn-danger {
+    font-family: var(--apple-font-text);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-error);
+    background-color: #fff1f2;
+    border: 1px solid #fecdd3;
+    padding: 9px 18px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background-color 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.guest-btn-danger:hover {
+    background-color: var(--apple-error);
+    border-color: var(--apple-error);
+    color: #ffffff;
+}
+
+.guest-action-note {
+    font-size: 12.5px;
+    color: #86868b;
+}
+
+.guest-pagination {
+    margin-top: 28px;
+}
+
+/* 6. Cancel Confirmation Modal Policy Box */
+.guest-cancel-modal {
+    max-width: 448px;
+    padding: 30px 26px 26px;
+    border-radius: 26px;
+}
+
+.guest-modal-policy-box {
+    background-color: var(--apple-surface);
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 16px;
+    padding: 15px 16px;
+    margin-bottom: 22px;
+    text-align: left;
+}
+
+.guest-modal-policy-label {
+    margin: 0 0 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #86868b;
+}
+
+.guest-modal-policy-text {
+    margin: 0 0 12px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #424245;
+}
+
+.guest-modal-refund-text {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 11px;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+}
+
+.guest-modal-refund-text.is-full {
+    color: #065f46;
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+
+.guest-modal-refund-text.is-partial {
+    color: #92400e;
+    background-color: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.guest-modal-refund-text.is-none {
+    color: #9f1239;
+    background-color: #fff1f2;
+    border: 1px solid #fecdd3;
+}
+
+/* Tablet & Desktop Breakpoints */
+@media (min-width: 768px) {
+    .guest-page {
+        padding: 36px 24px 96px;
+    }
+
+    .guest-kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .guest-booking-card {
+        grid-template-columns: 280px 1fr;
+    }
+
+    .guest-booking-body {
+        padding: 22px 24px;
+    }
+
+    .guest-booking-price-box {
+        text-align: right;
+    }
+
+    .guest-booking-meta-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

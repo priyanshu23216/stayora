@@ -44,8 +44,8 @@ export const sendOtpEmail = async (toEmail, otp) => {
                                     </p>
 
                                     <!-- OTP Box -->
-                                    <div style="background: #fdf2f4; border: 1.5px dashed #ff385c; border-radius: 10px; padding: 18px 10px; margin: 0 auto 28px; max-width: 300px;">
-                                        <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #ff385c; display: inline-block;">
+                                    <div style="background: #f0f7ff; border: 1.5px dashed #0071e3; border-radius: 10px; padding: 18px 10px; margin: 0 auto 28px; max-width: 300px;">
+                                        <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0071e3; display: inline-block;">
                                             ${otp}
                                         </span>
                                     </div>
@@ -154,7 +154,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                         </tr>
                                         <tr>
                                             <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Total Paid</td>
-                                            <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #ff385c;" align="right">₹${booking.totalPrice}</td>
+                                            <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${booking.totalPrice}</td>
                                         </tr>
                                     </table>
                                 </td>
@@ -261,7 +261,10 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                 <td style="padding: 0 35px 15px;">
                                     <div style="background-color: #fff7ed; border-left: 4px solid #f97316; padding: 14px 16px; border-radius: 6px;">
                                         <p style="margin: 0; font-size: 13px; line-height: 20px; color: #9a3412;">
-                                            💳 <strong>Refund Information:</strong> If you are eligible for a refund, it will be processed back to your original payment method within <strong>5–7 business days</strong>.
+                                            💳 <strong>Refund Information:</strong>
+                                            ${booking.refundNote
+                                                ? `${booking.refundNote}${booking.refundAmount > 0 ? " Eligible refunds are processed back to your original payment method within <strong>5–7 business days</strong>." : ""}`
+                                                : "If you are eligible for a refund, it will be processed back to your original payment method within <strong>5–7 business days</strong>."}
                                         </p>
                                     </div>
                                 </td>
@@ -292,9 +295,16 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${booking.checkOut}</td>
                                         </tr>
                                         <tr>
-                                            <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Total Amount</td>
-                                            <td style="padding: 16px 18px; font-size: 18px; font-weight: 800; color: #6b7280; text-decoration: line-through;" align="right">₹${booking.totalPrice}</td>
+                                            <td style="padding: 16px 18px; ${typeof booking.refundAmount === 'number' ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 15px; font-weight: 700; color: #111827;">Total Amount</td>
+                                            <td style="padding: 16px 18px; ${typeof booking.refundAmount === 'number' ? 'border-bottom: 1px solid #e5e7eb;' : ''} font-size: 18px; font-weight: 800; color: #111827;" align="right">₹${booking.totalPrice}</td>
                                         </tr>
+                                        ${typeof booking.refundAmount === 'number' ? `
+                                        <tr>
+                                            <td style="padding: 16px 18px; font-size: 15px; font-weight: 700; color: #111827;">Eligible Refund</td>
+                                            <td style="padding: 16px 18px; font-size: 17px; font-weight: 800; color: ${booking.refundAmount > 0 ? '#16a34a' : '#6b7280'};" align="right">
+                                                ₹${booking.refundAmount}${booking.refundPercent > 0 ? ` (${booking.refundPercent}%)` : ' (Non-refundable)'}
+                                            </td>
+                                        </tr>` : ''}
                                     </table>
                                 </td>
                             </tr>
@@ -354,7 +364,7 @@ export const resetPassEmail = async (toEmail, message) => {
                                 <td style="padding: 35px 35px 28px;">
                                     <h2 style="margin: 0 0 14px; font-size: 20px; font-weight: 700; color: #1f2937; text-align: center;">Account Sign-In Notice</h2>
 
-                                    <div style="background-color: #f9fafb; border-left: 4px solid #ff385c; border-radius: 6px; padding: 16px 18px; margin-bottom: 22px;">
+                                    <div style="background-color: #f9fafb; border-left: 4px solid #0071e3; border-radius: 6px; padding: 16px 18px; margin-bottom: 22px;">
                                         <p style="margin: 0; font-size: 15px; line-height: 24px; color: #374151;">
                                             ${message}
                                         </p>

@@ -241,7 +241,7 @@ bookingRouter.post("/new/:roomId", async (req, res, next) => {
         }
 
         req.flash("success", `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`);
-        return res.redirect(`/listings/${room.property_id}`);
+        return res.redirect("/guest/dashboard");
     } catch (err) {
         // Undo changes and release lock if any unexpected error occurs
         await connection.rollback();

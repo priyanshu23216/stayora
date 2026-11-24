@@ -1,0 +1,205 @@
+<section class="guest-page">
+    <!-- 1. Page Header -->
+    <header class="guest-header">
+        <div>
+            <span class="guest-eyebrow">My Bookings</span>
+            <h1 class="guest-title">Your Trips &amp; Stays</h1>
+            <p class="guest-subtitle">View upcoming reservations, past stays, and manage cancellations.</p>
+        </div>
+        <a href="/listings" class="guest-explore-btn">Explore Stays</a>
+    </header>
+
+    <!-- 2. KPI Summary Cards -->
+    <div class="guest-kpi-grid">
+        <a href="/guest/dashboard" class="guest-kpi-card">
+            <span class="guest-kpi-label">All Bookings</span>
+            <span class="guest-kpi-value"><%= stats.all %></span>
+        </a>
+
+        <a href="/guest/dashboard?status=upcoming" class="guest-kpi-card guest-kpi-upcoming">
+            <span class="guest-kpi-label">Upcoming</span>
+            <span class="guest-kpi-value"><%= stats.upcoming %></span>
+        </a>
+
+        <a href="/guest/dashboard?status=completed" class="guest-kpi-card guest-kpi-completed">
+            <span class="guest-kpi-label">Completed</span>
+            <span class="guest-kpi-value"><%= stats.completed %></span>
+        </a>
+
+        <a href="/guest/dashboard?status=cancelled" class="guest-kpi-card guest-kpi-cancelled">
+            <span class="guest-kpi-label">Cancelled</span>
+            <span class="guest-kpi-value"><%= stats.cancelled %></span>
+        </a>
+    </div>
+
+    <!-- 3. Apple Segmented Filter Tabs -->
+    <nav class="guest-tabs-wrap" aria-label="Filter bookings by status">
+        <div class="guest-tabs">
+            <a href="/guest/dashboard" class="guest-tab <% if (status === 'all') { %>is-active<% } %>">
+                All <span><%= stats.all %></span>
+            </a>
+
+            <a href="/guest/dashboard?status=upcoming" class="guest-tab <% if (status === 'upcoming') { %>is-active<% } %>">
+                Upcoming <span><%= stats.upcoming %></span>
+            </a>
+
+            <a href="/guest/dashboard?status=completed" class="guest-tab <% if (status === 'completed') { %>is-active<% } %>">
+                Completed <span><%= stats.completed %></span>
+            </a>
+
+            <a href="/guest/dashboard?status=cancelled" class="guest-tab <% if (status === 'cancelled') { %>is-active<% } %>">
+                Cancelled <span><%= stats.cancelled %></span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 4. Bookings List -->
+    <% if (bookings.length === 0) { %>
+        <div class="guest-empty">
+            <h2>No bookings in this tab</h2>
+            <p>When you reserve a stay on Stayora, your trip details will appear here.</p>
+            <% if (status !== "all") { %>
+                <a href="/guest/dashboard" class="guest-primary-btn">View All Bookings</a>
+            <% } else { %>
+                <a href="/listings" class="guest-primary-btn">Browse Stays</a>
+            <% } %>
+        </div>
+    <% } else { %>
+        <div class="guest-bookings-list">
+            <% for (let booking of bookings) { %>
+                <article class="guest-booking-card">
+                    <div class="guest-booking-media">
+                        <img src="<%= booking.property_image %>" alt="<%= booking.property_title %>" class="guest-booking-img">
+                        <% if (booking.cancellation.isOngoing) { %>
+                            <span class="guest-status-badge guest-status-ongoing">Ongoing</span>
+                        <% } else { %>
+                            <span class="guest-status-badge guest-status-<%= booking.STATUS %>">
+                                <%= booking.STATUS %>
+                            </span>
+                        <% } %>
+                    </div>
+
+                    <div class="guest-booking-body">
+                        <div class="guest-booking-top">
+                            <div>
+                                <p class="guest-booking-location"><%= booking.property_city %>, <%= booking.property_state %></p>
+                                <h2 class="guest-booking-title"><%= booking.property_title %></h2>
+                                <p class="guest-booking-room">
+                                    <%= booking.ROOM_TYPE %> &middot; <%= booking.GUESTS %> <%= booking.GUESTS === 1 ? "Guest" : "Guests" %> &middot; <%= booking.nights %> <%= booking.nights === 1 ? "Night" : "Nights" %>
+                                </p>
+                            </div>
+                            <div class="guest-booking-price-box">
+                                <span class="guest-booking-price-label">Total Paid</span>
+                                <span class="guest-booking-price">&#8377;<%= booking.TOTAL_AMOUNT %></span>
+                            </div>
+                        </div>
+
+                        <div class="guest-booking-meta-grid">
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Check-In</span>
+                                <span class="guest-meta-value"><%= booking.checkInDisplay %></span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Check-Out</span>
+                                <span class="guest-meta-value"><%= booking.checkOutDisplay %></span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Host Contact</span>
+                                <span class="guest-meta-value">
+                                    <a href="mailto:<%= booking.host_email %>" class="guest-host-link"><%= booking.host_name %></a>
+                                </span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Booking Ref</span>
+                                <span class="guest-meta-value guest-ref">#<%= booking.ID.slice(0, 8).toUpperCase() %></span>
+                            </div>
+                        </div>
+
+                        <p class="guest-policy-line">
+                            <strong>Policy:</strong> <%= booking.cancellation.policyText %>
+                        </p>
+
+                        <div class="guest-booking-actions">
+                            <a href="/listings/<%= booking.property_id %>" class="guest-btn-secondary">View Stay</a>
+
+                            <% if (booking.cancellation.canCancel) { %>
+                                <button
+                                    type="button"
+                                    class="guest-btn-danger open-cancel-modal-btn"
+                                    data-booking-id="<%= booking.ID %>"
+                                    data-property-title="<%= booking.property_title %>"
+                                    data-policy-text="<%= booking.cancellation.policyText %>"
+                                    data-refund-note="<%= booking.cancellation.refundNote %>"
+                                    data-refund-percent="<%= booking.cancellation.refundPercent %>"
+                                >
+                                    Cancel Booking
+                                </button>
+                            <% } else if (booking.cancellation.isOngoing) { %>
+                                <span class="guest-action-note">Check-in has started. Cancellation unavailable.</span>
+                            <% } %>
+                        </div>
+                    </div>
+                </article>
+            <% } %>
+        </div>
+
+        <!-- 5. Pagination -->
+        <nav class="pagination guest-pagination" aria-label="My bookings pagination">
+            <% if (currentPage > 1) { %>
+                <% if (status === "all") { %>
+                    <a href="/guest/dashboard?page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+                <% } else { %>
+                    <a href="/guest/dashboard?status=<%= status %>&page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+                <% } %>
+            <% } %>
+
+            <span class="pagination-info">Page <%= currentPage %> of <%= totalPages %></span>
+
+            <% if (currentPage < totalPages) { %>
+                <% if (status === "all") { %>
+                    <a href="/guest/dashboard?page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+                <% } else { %>
+                    <a href="/guest/dashboard?status=<%= status %>&page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+                <% } %>
+            <% } %>
+        </nav>
+    <% } %>
+</section>
+
+<!-- 6. Apple-Style Cancel Booking Confirmation Modal -->
+<div
+    id="cancelBookingModal"
+    class="apple-modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="cancelModalTitle"
+    hidden
+>
+    <div class="apple-modal guest-cancel-modal">
+        <div class="apple-modal-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+        </div>
+
+        <h2 id="cancelModalTitle" class="apple-modal-title">Cancel this booking?</h2>
+        <p id="cancelModalProperty" class="apple-modal-desc"></p>
+
+        <div class="guest-modal-policy-box">
+            <p class="guest-modal-policy-label">Property Cancellation Policy</p>
+            <p id="cancelModalPolicy" class="guest-modal-policy-text"></p>
+            <p id="cancelModalRefund" class="guest-modal-refund-text"></p>
+        </div>
+
+        <form id="cancelBookingForm" method="POST" action="">
+            <div class="apple-modal-actions">
+                <button type="button" id="cancelModalBackBtn" class="apple-modal-cancel">Keep Booking</button>
+                <button type="submit" id="cancelModalConfirmBtn" class="apple-modal-confirm">Confirm Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/guestBookings.js" defer></script>

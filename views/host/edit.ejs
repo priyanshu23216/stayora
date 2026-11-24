@@ -233,9 +233,9 @@
                             <% if (property.cancellation_policy && (property.cancellation_policy.startsWith("Flexible") || property.cancellation_policy.startsWith("Free"))) { %>selected<% } %>
                         >Flexible (24h before check-in)</option>
                         <option
-                            value="Moderate — Free cancellation up to 5 days before check-in"
+                            value="Moderate — 100% refund up to 5 days, 60% up to 3 days, 50% up to 48 hours before check-in"
                             <% if (property.cancellation_policy && property.cancellation_policy.startsWith("Moderate")) { %>selected<% } %>
-                        >Moderate (5 days before check-in)</option>
+                        >Moderate (5d: 100%, 3d: 60%, 48h: 50%)</option>
                         <option
                             value="Strict — 50% refund up to 7 days before check-in"
                             <% if (property.cancellation_policy && property.cancellation_policy.startsWith("Strict")) { %>selected<% } %>
