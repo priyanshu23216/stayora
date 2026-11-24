@@ -20,7 +20,7 @@
   </p>
 
   <p>
-    <strong>Stayora</strong> is a full-stack hospitality marketplace engineered to connect travelers, property hosts, and platform administrators. Built with an 11-table MySQL relational schema, Redis session & query caching with targeted cache invalidation, race-condition-safe transactional room bookings with confirmation emails, a complete Host Dashboard (Property & Room CRUD), an Admin Moderation Portal (Approve / Reject / Host Verification), Cloudinary multi-image uploads, strict RBAC & IDOR/BOLA protection, Zod + regex validation, and Google OAuth 2.0.
+    <strong>Stayora</strong> is a full-stack hospitality marketplace engineered to connect travelers, property hosts, and platform administrators. Built with an 11-table MySQL relational schema, Redis session & query caching with targeted cache invalidation, race-condition-safe transactional room bookings, a multi-role <strong>My Bookings</strong> dashboard with policy-aware cancellations &amp; auto check-out completion sync, a complete Host Dashboard (Property &amp; Room CRUD), an Admin Moderation Portal (Approve / Reject / Host Verification with automated host emails), Cloudinary multi-image uploads, strict RBAC &amp; IDOR/BOLA protection, Zod + regex validation, and Google OAuth 2.0.
   </p>
 
 </div>
@@ -31,8 +31,9 @@
 
 - **Clean Hospitality Relational Model:** 11-table MySQL schema with foreign keys and relational integrity across users, properties, rooms, photo galleries, amenities, reviews, bookings, and payments.
 - **Complete Host Dashboard & Property/Room CRUD:** Full property management (`/host/dashboard`, create, view more, edit, delete) and nested room management inside each property (`/host/listings/:propertyId/rooms/*`), with transactional MySQL writes, automatic syncing of property summary stats (`total_rooms`, `max_guests`, minimum `price_per_night`), active-booking deletion guards, safe foreign-key cleanup of past reviewed bookings, rejection feedback banners, and Apple-like frosted-glass delete confirmation modals.
-- **Admin Moderation Portal (`/admin`):** Role-protected moderation panel (`/admin/dashboard`) with KPI summary cards, default `All` listings view plus segmented `All` / `Pending` / `Approved` / `Rejected` tabs, 12-per-page pagination, full property/room review pages (`/admin/listings/:propertyId`), one-click **Approve**, Apple-like **Reject / Delist** modal with Zod-validated rejection reasons, and **Verified Host** badge toggling (`users.is_host_verified`).
-- **Race-Condition-Safe Booking Engine & Confirmation Emails:** End-to-end room reservation flow (`/bookings/new/:roomId`) powered by MySQL ACID transactions (`beginTransaction` / `commit` / `rollback`), pessimistic row-level locking (`SELECT ... FOR UPDATE`), real-time date-overlap availability checks (`TOTAL_ROOMS - bookedCount`), backend price calculation, host self-booking prevention, and automated post-commit booking confirmation emails (`utils/mailer.js`) containing booking details and host contact information.
+- **Admin Moderation Portal (`/admin`):** Role-protected moderation panel (`/admin/dashboard`) with KPI summary cards, default `All` listings view plus segmented `All` / `Pending` / `Approved` / `Rejected` tabs, 12-per-page pagination, full property/room review pages (`/admin/listings/:propertyId`), one-click **Approve** (with automated live-listing email to the host), Apple-like **Reject / Delist** modal with Zod-validated rejection reasons &amp; automated host notification email, and **Verified Host** badge toggling (`users.is_host_verified`).
+- **Race-Condition-Safe Booking Engine & Confirmation Emails:** End-to-end room reservation flow (`/bookings/new/:roomId`) powered by MySQL ACID transactions (`beginTransaction` / `commit` / `rollback`), pessimistic row-level locking (`SELECT ... FOR UPDATE`), real-time date-overlap availability checks (`TOTAL_ROOMS - bookedCount`), backend price calculation, host self-booking prevention, automated post-commit booking confirmation emails (`utils/mailer.js`) containing booking details and host contact information, and instant redirect to `/guest/dashboard`.
+- **My Bookings Dashboard & Policy-Aware Cancellation (`/guest/dashboard`):** Accessible to all logged-in roles (`guest`, `host`, and `admin`) via `My Bookings` in the navbar. Features live MySQL reads (intentionally uncached for strong consistency), automatic check-out completion sync (`confirmed` → `completed` once `CHECK_OUT_DATE + check_out_time <= NOW()`), live `Ongoing` stay detection, 4 KPI cards (`All`, `Upcoming`, `Completed`, `Cancelled`), Apple segmented tabs, 10-per-page pagination, and a frosted-glass cancellation modal powered by `utils/cancellationPolicy.js` (supporting Flexible 24h, Free 48h, 4-tier Moderate 5d/3d/48h, and Strict 7d refund slabs). Cancellations enforce strict `USER_ID` ownership, atomic `affectedRows` double-cancel race protection, instant automatic room inventory release, and itemized cancellation emails with exact refund amounts.
 - **Property Discovery & Detail Experience:** Paginated stays catalog (`/listings`) with city autocomplete, property type filters, price brackets, sorting (`Low to High`, `High to Low`, `Top Rated`), category discovery (`/categories`), and full stay detail views (`/listings/:id`) showcasing photo galleries, verified host badges, property & room amenities, room tiers, and star-rated guest reviews.
 - **High-Performance Redis Layer & Targeted Cache Invalidation:** Redis-backed session persistence (`ioredis` + `connect-redis`), temporary OTP/reset-token storage, 10-minute TTL caching for `/listings` (`listingsBy*`), `/categories` (`categories:all`), and `/listings/:id` (`property:${id}`), with automatic targeted cache invalidation on host edits/deletes and admin approvals/rejections.
 - **Layered RBAC & IDOR / BOLA Protection:**
@@ -72,8 +73,8 @@
 
 ### Frontend & Client Experience
 - **Templating:** EJS (Embedded JavaScript) with `express-ejs-layouts`
-- **Design System:** Clean Apple-inspired mobile-first UI with **Inter** / SF Pro typography, frosted-glass modals, segmented filter controls, and responsive sticky navigation across homepage, auth flows, discovery, checkout, host dashboard, and admin portal
-- **Client Scripts:** CSP-compliant external Vanilla JavaScript (`navbar.js`, `signupValidate.js`, `resendOTP.js`, `bookingPrice.js`, `hostNewListing.js`, `hostProperty.js`, `hostRoomForm.js`, `adminReview.js`)
+- **Design System:** Clean Apple-inspired mobile-first UI with **Inter** / SF Pro typography, frosted-glass modals, segmented filter controls, and responsive sticky navigation across homepage, auth flows, discovery, checkout, My Bookings dashboard, host dashboard, and admin portal
+- **Client Scripts:** CSP-compliant external Vanilla JavaScript (`navbar.js`, `signupValidate.js`, `resendOTP.js`, `bookingPrice.js`, `guestBookings.js`, `hostNewListing.js`, `hostProperty.js`, `hostRoomForm.js`, `adminReview.js`)
 
 ### Backend Engineering
 - **Runtime:** Node.js (v20+, ES Modules)
@@ -111,23 +112,25 @@ Stayora/
 │   ├── booking.js             # Room booking checkout, ACID reservation engine & confirmation email
 │   ├── host.js                # Protected Host Dashboard, Property CRUD, Room CRUD & cache invalidation
 │   ├── admin.js               # Protected Admin Dashboard, Approve/Reject moderation & Host verification
-│   ├── guest.js               # Protected Guest trips & reviews router (in progress)
+│   ├── guest.js               # Protected My Bookings dashboard, auto check-out sync & policy-aware cancellations
 │   └── pages.js               # Categories (/categories) & Company/Support/Legal pages
 ├── scripts/                   # Utility & database scripts
 │   └── seed.js                # Seeds 2,000 properties, rooms, users & 3,000 reviews
 ├── utils/                     # Reusable utilities and validators
+│   ├── cancellationPolicy.js  # Date/time helpers & multi-tier refund eligibility engine
 │   ├── cloudinaryUpload.js    # Streams Multer buffers to Cloudinary CDN
-│   ├── mailer.js              # Transactional emails (OTP, booking confirmation w/ host contact, reset alerts)
+│   ├── mailer.js              # Brand-consistent transactional emails (OTP, booking confirm/cancel, host approve/reject, reset alerts)
 │   ├── reset-pass.js          # Password strength validation helper
 │   └── validator.js           # Zod & regex schemas for auth, properties, rooms & admin moderation
 ├── public/                    # Static assets
-│   ├── css/                   # Apple-like stylesheets (navbar, home, listings, show, booking, host, admin, pages, auth, footer)
+│   ├── css/                   # Apple-like stylesheets (navbar, home, listings, show, booking, guest, host, admin, pages, auth, footer)
 │   ├── images/                # Editorial homepage imagery (hero & spotlight assets)
-│   └── js/                    # External CSP-safe scripts (navbar, signupValidate, resendOTP, bookingPrice, host*, adminReview)
+│   └── js/                    # External CSP-safe scripts (navbar, signupValidate, resendOTP, bookingPrice, guestBookings, host*, adminReview)
 ├── views/                     # EJS template views
 │   ├── admin/                 # Admin Portal views (dashboard.ejs, show.ejs)
 │   ├── auth/                  # Auth views (login, signup, enter-otp, forgot-password, reset-password)
 │   ├── bookings/              # Room checkout view (new.ejs)
+│   ├── guest/                 # My Bookings view (dashboard.ejs) with Cancel Confirmation Modal
 │   ├── host/                  # Host Dashboard views (dashboard, new, show, edit, rooms/new, rooms/edit)
 │   ├── layouts/               # Master layout (boilerplate.ejs)
 │   ├── listings/              # Stays catalog & property detail views (listings.ejs, show.ejs)
@@ -262,22 +265,30 @@ All `/admin/*` routes are protected by `isLoggedIn` + `isAdmin` RBAC middleware.
 |---|---|---|
 | `GET` | `/admin/dashboard` | Displays 4 KPI summary cards (`Pending Review`, `Approved Stays`, `Rejected Stays`, `Total Bookings`), segmented tabs (`All` default, `Pending`, `Approved`, `Rejected`), and 12-per-page paginated listings with safe page bounds clamping. |
 | `GET` | `/admin/listings/:propertyId` | Full moderation review page showing cover + gallery photos, description, summary specs, host details with verified badge toggle, and all nested rooms. |
-| `PATCH` | `/admin/listings/:propertyId/approve` | Marks property `approved`, records `verified_by_admin_user_id` & `verified_at`, clears old `rejection_reason`, and invalidates `listingsBy*` & `categories:all` Redis caches so the stay goes live immediately. |
-| `PATCH` | `/admin/listings/:propertyId/reject` | Validates `rejectionReason` via `rejectPropertySchema` (Zod + regex), marks property `rejected`, saves reason (shown to the host), and invalidates `property:${id}`, `listingsBy*`, and `categories:all` Redis caches. |
+| `PATCH` | `/admin/listings/:propertyId/approve` | Marks property `approved`, records `verified_by_admin_user_id` & `verified_at`, clears old `rejection_reason`, invalidates `listingsBy*` & `categories:all` Redis caches, and emails the host that their listing is live (`sendPropertyApprovedEmail`). |
+| `PATCH` | `/admin/listings/:propertyId/reject` | Validates `rejectionReason` via `rejectPropertySchema` (Zod + regex), marks property `rejected`, saves reason (shown to the host), invalidates `property:${id}`, `listingsBy*`, and `categories:all` Redis caches, and emails the host with the rejection reason (`sendPropertyRejectedEmail`). |
 | `PATCH` | `/admin/hosts/:hostId/verify` | Toggles `users.is_host_verified` (`1` ↔ `0`) for a host account (validating optional redirect `propertyId` via `hostVerifySchema`) and clears that host's cached property detail pages. |
 
 ### Room Booking Engine (`/bookings`)
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/bookings/new/:roomId` | Protected (`isLoggedIn`). Validates room & property status, prevents host self-booking, and renders the mobile-first booking checkout page (`views/bookings/new.ejs`) with live price calculation. |
-| `POST` | `/bookings/new/:roomId` | Protected (`isLoggedIn`). Validates dates & guest capacity, executes a MySQL transaction with `SELECT ... FOR UPDATE` row locking, checks overlapping bookings against `TOTAL_ROOMS`, computes total price on the backend, commits the booking, and sends a confirmation email containing host contact details. |
+| `POST` | `/bookings/new/:roomId` | Protected (`isLoggedIn`). Validates dates & guest capacity, executes a MySQL transaction with `SELECT ... FOR UPDATE` row locking, checks overlapping bookings against `TOTAL_ROOMS`, computes total price on the backend, commits the booking, sends a confirmation email containing host contact details, and redirects to `/guest/dashboard`. |
+
+### My Bookings & Cancellations (`/guest`)
+All `/guest/*` routes are protected by `isLoggedIn` (accessible to `guest`, `host`, and `admin` for their own personal trips) and enforce strict `USER_ID = req.user.ID` ownership checks.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/guest/dashboard` | Auto-syncs past confirmed stays (`CHECK_OUT_DATE + check_out_time <= NOW()`) to `completed`, fetches live KPI summary cards (`All`, `Upcoming`, `Completed`, `Cancelled`), segmented tabs, 10-per-page paginated bookings, `Ongoing` stay detection, and policy-based refund eligibility (`utils/cancellationPolicy.js`). |
+| `PATCH` | `/guest/bookings/:bookingId/cancel` | Enforces `USER_ID = req.user.ID` ownership and `now < checkIn` time check, computes exact refund % and `₹` amount from the property's cancellation policy (Flexible 24h, Free 48h, 4-tier Moderate 5d/3d/48h, Strict 7d), atomically updates `STATUS = 'cancelled'` (immediately releasing room inventory for those dates with double-cancel race protection), and sends an itemized `sendBookingCancellation` email. |
 
 ### Role-Protected Dashboard Routers
 | Mount Path | Middleware Guards | Purpose |
 |---|---|---|
 | `/host/*` | `isLoggedIn`, `isHost` | Host dashboard, property & room CRUD (`routes/host.js`). |
 | `/admin/*` | `isLoggedIn`, `isAdmin` | Admin moderation, approve/reject & host verification (`routes/admin.js`). |
-| `/guest/*` | `isLoggedIn` | Logged-in user trips, bookings & reviews (`routes/guest.js`). |
+| `/guest/*` | `isLoggedIn` | Personal My Bookings dashboard & policy-aware cancellations for all logged-in roles (`routes/guest.js`). |
 
 ### Authentication & Account Recovery (`/authenticate`)
 | Method | Endpoint | Description |
@@ -307,17 +318,17 @@ All `/admin/*` routes are protected by `isLoggedIn` + `isAdmin` RBAC middleware.
 - [x] End-to-end password recovery with SHA-256 hashed Redis tokens and security alert emails
 - [x] Zod + Regex validation schemas across auth, properties, rooms, and admin moderation
 - [x] Security hardening: `helmet` CSP headers, Redis/Express rate limiters, `httpOnly` cookies, RBAC, IDOR/BOLA ownership checks, and safe internal redirects
-- [x] Transactional email automation using `nodemailer` (OTP, password reset, security alerts, and post-booking confirmation email with host contact details)
-- [x] Responsive Apple-like UI across homepage, auth flows, listings, checkout, host dashboard, admin portal, and custom frosted-glass modals
+- [x] Transactional email automation using `nodemailer` with consistent Stayora Apple-style branding (OTP, password reset, security alerts, booking confirmation w/ host contact, itemized booking cancellation w/ refund details, and host listing approve/reject emails)
+- [x] Responsive Apple-like UI across homepage, auth flows, listings, checkout, My Bookings dashboard, host dashboard, admin portal, and custom frosted-glass modals
 - [x] Redis-cached property discovery (`/listings`, `/categories`, `/listings/:id`) with targeted cache invalidation
 - [x] Real-time date-range availability check & booking engine (`/bookings/new/:roomId`) with MySQL ACID transactions & `FOR UPDATE` row-level locking
 - [x] Guest-to-Host role upgrade flow (`/listings/update/host`) with admin downgrade guard
 - [x] Host dashboard (`/host/dashboard`) & complete Property CRUD with Cloudinary multipart uploads
 - [x] Nested Room CRUD inside `/host/listings/:propertyId` with Cloudinary uploads, auto-synced property stats, active-booking protection, and FK-safe deletion
-- [x] Admin moderation portal (`/admin/dashboard`) with KPIs, status tabs, pagination, Approve/Reject workflow with Zod-validated rejection reasons, and Verified Host badge toggling
+- [x] Admin moderation portal (`/admin/dashboard`) with KPIs, status tabs, pagination, Approve/Reject workflow with Zod-validated rejection reasons & host emails, and Verified Host badge toggling
+- [x] Multi-role My Bookings dashboard (`/guest/dashboard`) with live MySQL consistency, auto check-out completion sync, `Ongoing` stay detection, multi-tier policy-aware cancellation engine (`utils/cancellationPolicy.js`), atomic double-cancel protection, instant room inventory release, and Apple-style confirmation modal
 - [x] Automated MySQL seeding script (`scripts/seed.js`) with 2,000 properties and 3,000 reviews across 24 destinations
 - [ ] Host bookings management (`/host/bookings`)
-- [ ] Guest dashboard (`/guest/dashboard`) for viewing & cancelling bookings
 - [ ] Verified guest review and rating submission system
 - [ ] Payment gateway integration (Stripe / Razorpay)
 
