@@ -31,7 +31,7 @@ export const sendOtpEmail = async (toEmail, otp) => {
                             <!-- Header / Logo -->
                             <tr>
                                 <td align="center" style="padding: 30px 20px 20px; border-bottom: 1px solid #f0f2f5;">
-                                    <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                    <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Stayora<span style="color: #0071e3;">.</span></h1>
                                 </td>
                             </tr>
                             
@@ -104,7 +104,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                     <table width="100%">
                                         <tr>
                                             <td>
-                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #0071e3;">.</span></h1>
                                             </td>
                                             <td align="right">
                                                 <span style="background: #e6f9ed; color: #16a34a; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Confirmed</span>
@@ -187,7 +187,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Need to make changes? Reach out to our support team at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                        Need to make changes? Reach out to our support team at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -238,7 +238,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                     <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                         <tr>
                                             <td>
-                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #0071e3;">.</span></h1>
                                             </td>
                                             <td align="right">
                                                 <span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Cancelled</span>
@@ -302,7 +302,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        If this cancellation was not made by you or if you need assistance, please contact us immediately at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                        If this cancellation was not made by you or if you need assistance, please contact us immediately at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -345,7 +345,7 @@ export const resetPassEmail = async (toEmail, message) => {
                             <!-- Header / Logo -->
                             <tr>
                                 <td align="center" style="padding: 30px 20px 20px; border-bottom: 1px solid #f0f2f5;">
-                                    <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                    <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">Stayora<span style="color: #0071e3;">.</span></h1>
                                 </td>
                             </tr>
 
@@ -405,7 +405,7 @@ export const passChangeAlertEmail = async (toEmail) => {
                         <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
                             <tr>
                                 <td align="center" style="padding: 26px 24px; border-bottom: 1px solid #eef0f2;">
-                                    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                    <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #111827;">Stayora<span style="color: #0071e3;">.</span></h1>
                                 </td>
                             </tr>
                             <tr>
@@ -477,7 +477,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                                     <table width="100%">
                                         <tr>
                                             <td>
-                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #0071e3;">.</span></h1>
                                             </td>
                                             <td align="right">
                                                 <span style="background: #e6f9ed; color: #16a34a; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Approved</span>
@@ -530,7 +530,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Have questions about hosting? Contact us at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                        Have questions about hosting? Contact us at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -581,7 +581,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                                     <table width="100%">
                                         <tr>
                                             <td>
-                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #ff385c;">.</span></h1>
+                                                <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #111827;">Stayora<span style="color: #0071e3;">.</span></h1>
                                             </td>
                                             <td align="right">
                                                 <span style="background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 12px; padding: 5px 12px; border-radius: 20px; text-transform: uppercase;">Rejected</span>
@@ -645,7 +645,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Need help resolving this? Reach out to our team at <a href="mailto:support@stayora.com" style="color: #ff385c; text-decoration: none;">support@stayora.com</a>.
+                                        Need help resolving this? Reach out to our team at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
                                     </p>
                                 </td>
                             </tr>
