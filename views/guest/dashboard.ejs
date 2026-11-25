@@ -137,6 +137,19 @@
                             <% } else if (booking.cancellation.isOngoing) { %>
                                 <span class="guest-action-note">Check-in has started. Cancellation unavailable.</span>
                             <% } %>
+
+                            <% if (booking.STATUS === "completed" && !booking.review_id) { %>
+                                <button
+                                    type="button"
+                                    class="guest-btn-review open-review-modal-btn"
+                                    data-booking-id="<%= booking.ID %>"
+                                    data-property-title="<%= booking.property_title %>"
+                                >
+                                    &#9733; Write a Review
+                                </button>
+                            <% } else if (booking.STATUS === "completed" && booking.review_id) { %>
+                                <span class="guest-reviewed-badge">&#9733; Reviewed (<%= booking.review_rating %>/5)</span>
+                            <% } %>
                         </div>
                     </div>
                 </article>
@@ -198,6 +211,60 @@
             <div class="apple-modal-actions">
                 <button type="button" id="cancelModalBackBtn" class="apple-modal-cancel">Keep Booking</button>
                 <button type="submit" id="cancelModalConfirmBtn" class="apple-modal-confirm">Confirm Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 7. Apple-Style Write a Review Modal (1 final verified review per completed stay) -->
+<div
+    id="reviewBookingModal"
+    class="apple-modal-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="reviewModalTitle"
+    hidden
+>
+    <div class="apple-modal guest-review-modal">
+        <div class="guest-review-icon" aria-hidden="true">&#9733;</div>
+
+        <h2 id="reviewModalTitle" class="apple-modal-title">Rate your stay</h2>
+        <p id="reviewModalProperty" class="apple-modal-desc"></p>
+
+        <form id="reviewBookingForm" method="POST" action="">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="rating" id="reviewRatingInput" value="5" required>
+
+            <div class="review-star-picker" role="radiogroup" aria-label="Select star rating">
+                <% for (let s = 1; s <= 5; s++) { %>
+                    <button
+                        type="button"
+                        class="review-star-btn is-selected"
+                        data-star="<%= s %>"
+                        aria-label="<%= s %> <%= s === 1 ? 'star' : 'stars' %>"
+                    >&#9733;</button>
+                <% } %>
+            </div>
+            <p id="reviewRatingLabel" class="review-rating-label">5 / 5 &mdash; Excellent</p>
+
+            <div class="review-comment-wrap">
+                <label for="reviewCommentInput" class="review-comment-label">Your Review</label>
+                <textarea
+                    id="reviewCommentInput"
+                    name="comment"
+                    class="review-comment-textarea"
+                    rows="4"
+                    minlength="10"
+                    maxlength="1000"
+                    placeholder="Share what you liked about the rooms, cleanliness, host, and location..."
+                    required
+                ></textarea>
+                <span id="reviewCharCount" class="review-char-count">0 / 1000</span>
+            </div>
+
+            <div class="apple-modal-actions">
+                <button type="button" id="reviewModalCancelBtn" class="apple-modal-cancel">Cancel</button>
+                <button type="submit" id="reviewModalSubmitBtn" class="guest-review-submit-btn">Submit Review</button>
             </div>
         </form>
     </div>

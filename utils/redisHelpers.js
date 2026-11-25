@@ -43,17 +43,17 @@ export async function getListingsCacheVersion() {
     }
 }
 
-// Clear all cached /listings pages and /categories page instantly in O(1) time
+// Clear all cached /listings, /categories, and /destinations pages instantly in O(1) time
 export async function invalidateListingsListCache() {
     try {
         await redis.incr(LISTINGS_VERSION_KEY);
-        await redis.del("categories:all");
+        await redis.del("categories:all", "destinations:popular");
     } catch (err) {
         console.error("Cache invalidation error:", err.message);
     }
 }
 
-// Clear one property's detail cache + all /listings & /categories caches
+// Clear one property's detail cache + all /listings, /categories & /destinations caches
 export async function invalidatePropertyCache(propertyId) {
     try {
         if (propertyId) {

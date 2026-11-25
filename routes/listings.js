@@ -314,12 +314,13 @@ lists.get("/:id", async (req, res, next) => {
             }
         }
 
-        // Step 5: Fetch reviews and calculate average rating
+        // Step 5: Fetch reviews (newest first) and calculate average rating
         const reviewsResult = await db.execute(
             `SELECT review.ID, review.RATING, review.COMMENT, users.NAME AS reviewer_name, users.avatar_url AS reviewer_avatar
              FROM review
              JOIN users ON review.USER_ID = users.ID
-             WHERE review.property_id = ?`,
+             WHERE review.property_id = ?
+             ORDER BY review.CREATED_AT DESC`,
             [propertyId]
         );
         const reviews = reviewsResult[0];

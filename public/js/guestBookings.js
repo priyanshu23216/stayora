@@ -83,4 +83,117 @@ document.addEventListener("DOMContentLoaded", () => {
         confirmBtn.disabled = true;
         confirmBtn.textContent = "Cancelling...";
     });
+
+    // =========================================================================
+    // Write a Review Modal (1 final verified review per completed booking)
+    // =========================================================================
+    const reviewButtons = document.querySelectorAll(".open-review-modal-btn");
+    const reviewModal = document.getElementById("reviewBookingModal");
+    const reviewForm = document.getElementById("reviewBookingForm");
+    const reviewPropertyText = document.getElementById("reviewModalProperty");
+    const reviewRatingInput = document.getElementById("reviewRatingInput");
+    const reviewRatingLabel = document.getElementById("reviewRatingLabel");
+    const reviewCommentInput = document.getElementById("reviewCommentInput");
+    const reviewCharCount = document.getElementById("reviewCharCount");
+    const reviewCancelBtn = document.getElementById("reviewModalCancelBtn");
+    const reviewSubmitBtn = document.getElementById("reviewModalSubmitBtn");
+    const starButtons = document.querySelectorAll(".review-star-btn");
+
+    const ratingLabels = {
+        1: "1 / 5 — Poor",
+        2: "2 / 5 — Fair",
+        3: "3 / 5 — Good",
+        4: "4 / 5 — Very Good",
+        5: "5 / 5 — Excellent",
+    };
+
+    function setSelectedStars(starCount) {
+        reviewRatingInput.value = String(starCount);
+        if (reviewRatingLabel) {
+            reviewRatingLabel.textContent = ratingLabels[starCount] || `${starCount} / 5`;
+        }
+        for (let starBtn of starButtons) {
+            const num = Number(starBtn.dataset.star);
+            if (num <= starCount) {
+                starBtn.classList.add("is-selected");
+            } else {
+                starBtn.classList.remove("is-selected");
+            }
+        }
+    }
+
+    function openReviewModal(button) {
+        const bookingId = button.dataset.bookingId;
+        const propertyTitle = button.dataset.propertyTitle;
+
+        reviewForm.action = `/guest/bookings/${bookingId}/review`;
+        reviewPropertyText.textContent = `How was your stay at "${propertyTitle}"? Reviews are final once submitted.`;
+
+        setSelectedStars(5);
+        reviewCommentInput.value = "";
+        if (reviewCharCount) {
+            reviewCharCount.textContent = "0 / 1000";
+        }
+        reviewSubmitBtn.disabled = false;
+        reviewSubmitBtn.textContent = "Submit Review";
+
+        reviewModal.hidden = false;
+        document.body.classList.add("apple-modal-open");
+
+        window.requestAnimationFrame(() => {
+            reviewModal.classList.add("is-open");
+            reviewCommentInput.focus();
+        });
+    }
+
+    function closeReviewModal() {
+        reviewModal.classList.remove("is-open");
+        document.body.classList.remove("apple-modal-open");
+
+        window.setTimeout(() => {
+            if (!reviewModal.classList.contains("is-open")) {
+                reviewModal.hidden = true;
+            }
+        }, 200);
+    }
+
+    if (reviewModal && reviewForm && reviewCancelBtn && reviewSubmitBtn) {
+        for (let btn of reviewButtons) {
+            btn.addEventListener("click", () => {
+                openReviewModal(btn);
+            });
+        }
+
+        for (let starBtn of starButtons) {
+            starBtn.addEventListener("click", () => {
+                const chosen = Number(starBtn.dataset.star);
+                setSelectedStars(chosen);
+            });
+        }
+
+        if (reviewCommentInput && reviewCharCount) {
+            reviewCommentInput.addEventListener("input", () => {
+                reviewCharCount.textContent = `${reviewCommentInput.value.length} / 1000`;
+            });
+        }
+
+        reviewCancelBtn.addEventListener("click", closeReviewModal);
+
+        reviewModal.addEventListener("click", (event) => {
+            if (event.target === reviewModal) {
+                closeReviewModal();
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !reviewModal.hidden) {
+                closeReviewModal();
+            }
+        });
+
+        reviewForm.addEventListener("submit", () => {
+            reviewSubmitBtn.disabled = true;
+            reviewSubmitBtn.textContent = "Submitting...";
+        });
+    }
 });

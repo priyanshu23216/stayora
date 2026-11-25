@@ -285,3 +285,18 @@ export const hostVerifySchema = z.object({
         .regex(uuidRegex, "Invalid property ID.")
         .optional(),
 });
+
+// Guest verified review & star rating validation (1 to 5 stars + clean comment)
+export const reviewSchema = z.object({
+    rating: z.coerce
+        .number({ message: "Please select a star rating between 1 and 5." })
+        .int("Rating must be a whole number between 1 and 5.")
+        .min(1, "Rating must be at least 1 star.")
+        .max(5, "Rating cannot exceed 5 stars."),
+    comment: z
+        .string()
+        .trim()
+        .min(10, "Please write at least 10 characters in your review.")
+        .max(1000, "Review comment cannot exceed 1000 characters.")
+        .regex(/^[^<>]+$/, "Review comment cannot contain < or > characters."),
+});

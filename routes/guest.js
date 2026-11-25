@@ -1,7 +1,10 @@
 import express from "express";
+import { v4 as uuidv4 } from "uuid";
 import db from "../config/db.js";
 import { isLoggedIn, isGuest, isValidUuid } from "../middlewares/auth.js";
 import { sendBookingCancellation } from "../utils/mailer.js";
+import { reviewSchema } from "../utils/validator.js";
+import { atomicIncrWithExpiry, invalidatePropertyCache } from "../utils/redisHelpers.js";
 import {
     calculateCancellationDetails,
     formatDisplayDate,
@@ -114,12 +117,15 @@ guestRouter.get("/dashboard", async (req, res, next) => {
                     properties.check_in_time,
                     properties.check_out_time,
                     COALESCE(bookings.cancellation_policy, properties.cancellation_policy) AS cancellation_policy,
-                    host.NAME AS host_name,
-                    host.EMAIL AS host_email
+                    users.NAME AS host_name,
+                    users.EMAIL AS host_email,
+                    review.ID AS review_id,
+                    review.RATING AS review_rating
              FROM bookings
              JOIN rooms ON bookings.ROOM_ID = rooms.ID
              JOIN properties ON rooms.property_id = properties.ID
-             JOIN users AS host ON properties.HOST_ID = host.ID
+             JOIN users ON properties.HOST_ID = users.ID
+             LEFT JOIN review ON bookings.ID = review.BOOKING_ID
              WHERE bookings.USER_ID = ?
                ${statusCondition}
              ORDER BY bookings.CREATED_AT DESC
@@ -261,6 +267,100 @@ guestRouter.patch("/bookings/:bookingId/cancel", async (req, res, next) => {
         if (connection) {
             connection.release();
         }
+    }
+});
+
+// Rate limiter for review submissions: max 10 reviews per 15 minutes per user
+async function reviewRateLimiter(req, res, next) {
+    try {
+        const redisKey = `review:user:${req.user.ID}`;
+        const attempts = await atomicIncrWithExpiry(redisKey, 900);
+        if (attempts > 10) {
+            req.flash("error", "Too many review submissions. Please try again after 15 minutes.");
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+        return next();
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// 3. POST /guest/bookings/:bookingId/review -> Submit 1 final verified review for a completed stay
+guestRouter.post("/bookings/:bookingId/review", reviewRateLimiter, async (req, res, next) => {
+    try {
+        const bookingId = req.params.bookingId;
+        const userId = req.user.ID;
+
+        // Step 1: Validate booking ID format
+        if (!isValidUuid(bookingId)) {
+            req.flash("error", "Invalid booking reference.");
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+
+        // Step 2: Validate star rating (1 to 5) and review comment using Zod
+        const validation = reviewSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+
+        const rating = validation.data.rating;
+        const comment = validation.data.comment;
+
+        // Step 3: Verify this booking belongs to the logged-in user and fetch its property
+        const [bookingRows] = await db.execute(
+            `SELECT bookings.ID, bookings.STATUS, rooms.property_id, properties.title
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE bookings.ID = ? AND bookings.USER_ID = ?`,
+            [bookingId, userId]
+        );
+
+        if (bookingRows.length === 0) {
+            req.flash("error", "Booking not found or you do not have permission to review it.");
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+
+        const booking = bookingRows[0];
+
+        // Step 4: Only completed stays can be reviewed
+        if (booking.STATUS !== "completed") {
+            req.flash("error", "You can only review a stay after it is completed.");
+            return res.redirect("/guest/dashboard");
+        }
+
+        // Step 5: Allow only 1 final review per booking
+        const [existingReviews] = await db.execute(
+            `SELECT ID FROM review WHERE BOOKING_ID = ?`,
+            [bookingId]
+        );
+
+        if (existingReviews.length > 0) {
+            req.flash("error", "You have already reviewed this booking.");
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+
+        // Step 6: Save verified review in MySQL
+        const reviewId = uuidv4();
+        await db.execute(
+            `INSERT INTO review (ID, USER_ID, property_id, BOOKING_ID, RATING, COMMENT)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [reviewId, userId, booking.property_id, bookingId, rating, comment]
+        );
+
+        // Step 7: Clear property & listings cache so the new review and rating appear right away
+        await invalidatePropertyCache(booking.property_id);
+
+        req.flash("success", `Thank you! Your ${rating}-star review for "${booking.title}" has been published.`);
+        return res.redirect("/guest/dashboard?status=completed");
+    } catch (err) {
+        // Catch duplicate submit race condition cleanly (BOOKING_ID has UNIQUE constraint in DB)
+        if (err && err.code === "ER_DUP_ENTRY") {
+            req.flash("error", "You have already reviewed this booking.");
+            return res.redirect("/guest/dashboard?status=completed");
+        }
+        return next(err);
     }
 });
 

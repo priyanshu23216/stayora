@@ -505,3 +505,142 @@
         gap: 22px;
     }
 }
+
+/* ==========================================================================
+   Popular Destinations Page (/destinations) - Mobile-First Apple-Like UI
+   ========================================================================== */
+
+.destinations-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+}
+
+.destination-card {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--apple-neutral);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 22px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.04);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.destination-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 0, 0, 0.14);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.09);
+}
+
+.destination-img-wrap {
+    position: relative;
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    background-color: var(--apple-surface);
+}
+
+.destination-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+}
+
+.destination-card:hover .destination-img {
+    transform: scale(1.04);
+}
+
+.destination-count-pill {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--apple-on-surface);
+    background-color: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    padding: 5px 12px;
+    border-radius: 999px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.destination-body {
+    padding: 18px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+    justify-content: space-between;
+}
+
+.destination-city {
+    font-family: var(--apple-font-display);
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.024em;
+    line-height: 1.2;
+    margin: 0 0 3px;
+    color: var(--apple-on-surface);
+}
+
+.destination-state {
+    font-size: 13.5px;
+    color: #6e6e73;
+    margin: 0;
+}
+
+.destination-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.destination-price {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--apple-on-surface);
+    font-variant-numeric: tabular-nums;
+}
+
+.destination-price span {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: #6e6e73;
+}
+
+.destination-cta {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-primary);
+}
+
+.destinations-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+@media (min-width: 640px) {
+    .destinations-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .destinations-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+}

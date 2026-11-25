@@ -65,6 +65,73 @@ pageRouter.get("/categories", async (req, res, next) => {
     }
 });
 
+// Popular Destinations Page (with 10-minute Redis caching)
+pageRouter.get("/destinations", async (req, res, next) => {
+    try {
+        const cacheKey = "destinations:popular";
+
+        // Step 1: Check if popular destinations data is already cached in Redis
+        const cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+            const parsedDestinations = JSON.parse(cachedData);
+            return res.render("pages/destinations", {
+                title: "Popular Destinations",
+                destinations: parsedDestinations,
+            });
+        }
+
+        // Step 2: Fetch top 12 cities with the most approved stays from MySQL
+        const [cityRows] = await db.execute(
+            `SELECT city,
+                    state,
+                    COUNT(*) AS stay_count,
+                    MIN(price_per_night) AS min_price
+             FROM properties
+             WHERE verification_status = 'approved'
+             GROUP BY city, state
+             ORDER BY stay_count DESC, city ASC
+             LIMIT 12`
+        );
+
+        // Step 3: Pick 1 cover photo for each destination city
+        const destinations = [];
+        for (let row of cityRows) {
+            const [imageRows] = await db.execute(
+                `SELECT image
+                 FROM properties
+                 WHERE city = ? AND verification_status = 'approved'
+                 ORDER BY price_per_night DESC
+                 LIMIT 1`,
+                [row.city]
+            );
+
+            let coverImage = "/images/hero-villa.jpg";
+            if (imageRows.length > 0 && imageRows[0].image) {
+                coverImage = imageRows[0].image;
+            }
+
+            destinations.push({
+                city: row.city,
+                state: row.state,
+                stayCount: Number(row.stay_count || 0),
+                minPrice: Number(row.min_price || 0).toLocaleString("en-IN"),
+                image: coverImage,
+            });
+        }
+
+        // Step 4: Save destinations in Redis cache for 10 minutes (600 seconds)
+        await redis.set(cacheKey, JSON.stringify(destinations), "EX", 600);
+
+        // Step 5: Render the Popular Destinations EJS page
+        return res.render("pages/destinations", {
+            title: "Popular Destinations",
+            destinations: destinations,
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
 // Company Pages
 pageRouter.get("/about", (req, res) => {
     return res.render("pages/about", { title: "About Stayora" });

@@ -1,0 +1,62 @@
+<div class="categories-page destinations-page">
+
+    <!-- Page Header -->
+    <header class="info-hero">
+        <span class="info-eyebrow">Explore India</span>
+        <h1 class="info-title">Popular Destinations</h1>
+        <p class="info-subtitle">
+            Discover our most-loved cities, hill stations, and coastal getaways — each handpicked with verified stays on Stayora.
+        </p>
+    </header>
+
+    <% if (destinations.length === 0) { %>
+        <div class="info-card" style="text-align: center;">
+            <h2 class="info-section-title">No destinations available yet</h2>
+            <p class="info-text">Check back soon as new verified properties are added across India.</p>
+            <a href="/listings" class="info-btn">Browse All Stays</a>
+        </div>
+    <% } else { %>
+        <div class="destinations-grid">
+            <% for (let dest of destinations) { %>
+                <a
+                    href="/listings?city=<%= encodeURIComponent(dest.city) %>"
+                    class="destination-card"
+                >
+                    <div class="destination-img-wrap">
+                        <img
+                            src="<%= dest.image %>"
+                            alt="Stays in <%= dest.city %>, <%= dest.state %>"
+                            class="destination-img"
+                        >
+                        <span class="destination-count-pill">
+                            <%= dest.stayCount %> <%= dest.stayCount === 1 ? "Stay" : "Stays" %>
+                        </span>
+                    </div>
+
+                    <div class="destination-body">
+                        <div class="destination-meta">
+                            <h2 class="destination-city"><%= dest.city %></h2>
+                            <p class="destination-state"><%= dest.state %></p>
+                        </div>
+
+                        <div class="destination-footer">
+                            <span class="destination-price">From &#8377;<%= dest.minPrice %> <span>/ night</span></span>
+                            <span class="destination-cta">Explore &rarr;</span>
+                        </div>
+                    </div>
+                </a>
+            <% } %>
+        </div>
+    <% } %>
+
+    <!-- Bottom CTA -->
+    <section class="info-cta-bar">
+        <h2>Not sure where to go next?</h2>
+        <p>Browse all verified stays or filter by property type like villas, resorts, and boutique hotels.</p>
+        <div class="destinations-cta-actions">
+            <a href="/listings" class="info-btn">Browse All Stays</a>
+            <a href="/categories" class="category-view-all">Explore by Category &rarr;</a>
+        </div>
+    </section>
+
+</div>
