@@ -100,11 +100,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const starButtons = document.querySelectorAll(".review-star-btn");
 
     const ratingLabels = {
-        1: "1 / 5 — Poor",
-        2: "2 / 5 — Fair",
-        3: "3 / 5 — Good",
-        4: "4 / 5 — Very Good",
-        5: "5 / 5 — Excellent",
+        1: "1 / 5 - Poor",
+        2: "2 / 5 - Fair",
+        3: "3 / 5 - Good",
+        4: "4 / 5 - Very Good",
+        5: "5 / 5 - Excellent",
     };
 
     function setSelectedStars(starCount) {
