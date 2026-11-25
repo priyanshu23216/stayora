@@ -43,25 +43,28 @@
 
 Stayora implements **Defense in Depth** across every layer of the request pipeline:
 
-### 1. CSRF & Cross-Origin Protection (`middlewares/csrf.js`, `config/session.js`)
-- **Synchronizer Token Pattern:** Generates a 256-bit cryptographically random CSRF token per session (stored server-side in Redis, never exposed in cookies) and injects `<input type="hidden" name="_csrf">` into every `POST` / `PUT` / `PATCH` / `DELETE` form, verified with `crypto.timingSafeEqual`.
-- **Origin / Referer Verification:** Rejects cross-origin and sandboxed (`Origin: null`) unsafe requests before body or file parsing.
+### 1. CSRF, Cross-Origin & Session Cookie Protection (`middlewares/csrf.js`, `config/session.js`, `server.js`)
+- **Zero Session & Zero CSRF Token Creation on `GET`:** Unauthenticated `GET` requests (including `/favicon.ico` and `/.well-known` probes) never create a Redis session or cookie (`saveUninitialized: false`, conditional flash reads), preventing Redis session-flooding DoS. Even for logged-in users, `GET` requests **never generate** CSRF tokens — `csrfProtection` only reads an existing `req.session.csrfToken` into `res.locals.csrfToken`.
+- **Login-Time Synchronizer Token Pattern:** A 256-bit cryptographically random CSRF token (`crypto.randomBytes(32)`) is generated **once inside the Redis session when authentication succeeds** (`POST /authenticate/login/verify`, `POST /authenticate/signup/verify-otp`, and `GET /authenticate/google/callback`), embedded via `<input type="hidden" name="_csrf">` across all state-changing EJS forms, and verified with `crypto.timingSafeEqual` on every authenticated `POST`, `PUT`, `PATCH`, and `DELETE` request.
+- **Origin / Referer Verification & Proxy Hardening:** Pre-auth `POST` routes (login, signup, OTP, forgot/reset password) enforce same-origin (`Origin` / `Referer` host === server `Host`) without false `_csrf` lockouts; all authenticated mutations enforce **both** `Origin`/`Referer` and `_csrf`. Supports `X-Forwarded-Host` (strictly when `TRUST_PROXY=1` or `NODE_ENV=production`) and explicit `:80`/`:443` ports while rejecting cross-origin and `Origin: null` requests (`403 Forbidden`).
+- **Browser-Safe `Referrer-Policy`:** Configures Helmet with `Referrer-Policy: strict-origin-when-cross-origin` (instead of Helmet's `no-referrer` default) so browsers send the real `Origin` on same-site `POST` forms while stripping paths/tokens on cross-origin navigations and HTTPS→HTTP downgrades.
 - **Multipart Bypass Prevention:** `multipart/form-data` CSRF deferral is strictly restricted to an explicit allowlist of the 4 Multer host upload routes (which run `verifyCsrfToken` immediately after Multer); all other routes reject multipart requests without a valid CSRF token (`403 Forbidden`).
-- **Strict Session Cookies:** Custom cookie name (`stayora.sid`), `httpOnly: true`, `sameSite: "lax"`, `secure: true` in production, `trust proxy` support, and startup `SESSION_SECRET` length validation.
+- **Strict Session Cookies:** Custom cookie name (`stayora.sid`), `httpOnly: true`, `sameSite: "lax"`, `secure: true` in production, 7-day expiry, `trust proxy` support, and startup `SESSION_SECRET` minimum-length enforcement.
 - **Safe HTTP Methods Only:** All state-mutating actions (`POST /listings/update/host`, `POST /authenticate/logout`, approve/reject/delete/cancel) require `POST` / `PUT` / `PATCH` / `DELETE` — zero state changes on `GET`.
 
 ### 2. Authentication, OTP & Session Security (`routes/authentication.js`, `config/passport.js`)
 - **OTP Brute-Force Lockout & Cleanup:** IP + email rate limiting on `/signup/verify-otp` and `/signup/resend-otp`; **5 failed guesses** immediately invalidate and delete the OTP in Redis; timing-safe SHA-256 hash comparison; all pending Redis keys are consumed and deleted upon successful registration.
 - **Instant Cross-Device Session Revocation:** `users.session_version` is embedded in Passport serialization and verified on every request in `deserializeUser`. Password resets atomically increment `session_version`, immediately invalidating all previously logged-in sessions.
-- **Hardened Local & Google OAuth 2.0:** 12-round `bcrypt` hashing with strict 72-byte password cap (preventing bcrypt silent truncation and CPU DoS), `IS_VERIFIED` check, uniform login error messaging, verified Google email enforcement (`email_verified === true`), and blocking silent OAuth auto-linking for `admin` accounts.
+- **Hardened Local & Google OAuth 2.0:** 12-round `bcrypt` hashing with strict 72-byte password cap (preventing bcrypt silent truncation and CPU DoS), `IS_VERIFIED` check, uniform login error messaging, verified Google email enforcement (`email_verified === true`), blocking silent OAuth auto-linking for `admin` accounts, and optional `FOUNDER_EMAIL` Jarvis-style admin welcome toast.
 - **Timing-Safe Password Recovery:** 32-byte SHA-256 hashed Redis reset tokens (10-min TTL) with asynchronous email dispatch to eliminate SMTP response-time user enumeration.
 - **Atomic Redis Lua Rate Limiters (`utils/redisHelpers.js`):** All auth, OTP, booking, and host upload rate limiters execute an atomic Lua `INCR` + `EXPIRE` script so crashes can never leave permanent lockout keys; login counters are keyed per `(IP + email)` and cleared on successful login to prevent remote account-lockout DoS.
 
-### 3. Access Control, Input Validation & Media Safety
+### 3. Access Control, Headers, Input Validation & Crash-Proof Error Handling
 - **Layered RBAC, IDOR/BOLA & UUID Guards (`middlewares/auth.js`):** Router-level `isLoggedIn`, `isGuest`, `isHost`, `isAdmin` guards, strict UUID validation on all dynamic route params, and ownership checks (`AND HOST_ID = ?` / `AND USER_ID = ?`) verified **before** Multer buffers uploaded files into RAM.
 - **Binary Magic-Byte Image Validation (`utils/imageValidation.js`):** Inspects raw file headers (JPEG, PNG, WEBP, AVIF) in addition to Multer MIME filtering and 5 MB limits, enforces total photo caps (12 gallery / 8 room), and cleans up orphaned Cloudinary assets on upload failure or DB rollback (`destroyCloudinaryAssets`).
 - **End-to-End Zod & Regex Schemas (`utils/validator.js`):** Strict schemas with max lengths, enum-locked cancellation policies, strict non-rollover `YYYY-MM-DD` date checks (`bookingSchema`), and angle-bracket filtering.
-- **XSS, Email HTML Injection & SQL Injection Prevention:** 100% parameterized `mysql2` prepared statements (with lowercase `users` table naming for Linux MySQL compatibility), auto-escaped EJS views, `escapeHtml()` + subject header sanitization across all outbound emails (`utils/mailer.js`), `helmet` CSP (`script-src 'self'`, `frame-ancestors 'self'`), global rate limiting, and clean `403` / `404` / `500` error pages (`views/pages/error.ejs`) that never leak stack traces.
+- **Helmet Security Headers, CSP & Payload Limits (`server.js`):** Enforces strict CSP (`default-src 'self'`, `script-src 'self'`, `script-src-attr 'none'`, `frame-ancestors 'self'`, allowlisted `img-src`/`style-src`/`font-src`, production-only `upgrade-insecure-requests`), `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `COOP: same-origin`, `CORP: same-origin`, `100 KB` JSON &amp; URL-encoded payload caps, and global rate limiting (`600 req / 15 min / IP`).
+- **XSS, Email HTML Injection, SQL Injection & Safe Error Pages:** 100% parameterized `mysql2` prepared statements (with lowercase `users` table naming for Linux MySQL compatibility), auto-escaped EJS views, `escapeHtml()` + subject header sanitization across all outbound emails (`utils/mailer.js`), early template-local initialization before rate limiting &amp; body parsing, and branded `400` / `403` / `404` / `413` / `429` / `500` error pages (`views/pages/error.ejs`) that never crash layouts or leak stack traces.
 
 ---
 
@@ -249,7 +252,7 @@ Open **`http://localhost:8080`** (or your configured `PORT`) in your browser.
 
 ## 🚦 API & Route Specifications
 
-> All state-changing `POST`, `PUT`, `PATCH`, and `DELETE` endpoints require a valid session CSRF token (`_csrf` form field or `X-CSRF-Token` header) and matching `Origin`/`Referer`.
+> All authenticated state-changing `POST`, `PUT`, `PATCH`, and `DELETE` endpoints verify **both** matching `Origin`/`Referer` === `Host` **and** a valid Redis-backed session CSRF token (`_csrf` form field or `X-CSRF-Token` header). Pre-auth `POST` endpoints (login, signup, OTP, password recovery) verify `Origin`/`Referer` === `Host`. `GET` requests never mutate state and never generate sessions or CSRF tokens.
 
 ### Core, Categories, Company & Legal Pages (`/`)
 | Method | Endpoint | Description |
@@ -266,6 +269,7 @@ Open **`http://localhost:8080`** (or your configured `PORT`) in your browser.
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/listings` | Displays paginated approved stays (12 per page) with any combination of `city`, `type`, `price`, `sort` (`Low to High`, `High to Low`, `Top Rated`), and `page` params. HPP-safe, bounds-clamped, backed by O(1) versioned Redis caching (`listings:v*`). |
+| `GET` | `/listings/update/host` | Read-only redirect route (`isLoggedIn`). Never mutates DB on `GET`; prompts logged-out visitors to log in or redirects existing hosts/admins safely. |
 | `POST` | `/listings/update/host` | Protected (`isLoggedIn` + CSRF). Upgrades a `guest` account's `ROLE` to `host` (blocks `admin` downgrade) and redirects to `/host/dashboard`. |
 | `GET` | `/listings/:id` | UUID-validated property detail page (`views/listings/show.ejs`) with host details, photo gallery, amenities, room tiers, star-rated reviews, and 10-minute Redis caching (`property:${id}`). |
 
@@ -317,19 +321,19 @@ All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.u
 ### Authentication & Account Recovery (`/authenticate`)
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/authenticate/login` | Renders user sign-in portal. |
-| `POST` | `/authenticate/login/verify` | CSRF-protected; authenticates via local strategy with atomic Redis IP &amp; `(IP + email)` rate limiting (cleared on success). |
+| `GET` | `/authenticate/login` | Renders user sign-in portal (zero session/CSRF token created on `GET`). |
+| `POST` | `/authenticate/login/verify` | Origin/Referer verified; authenticates via local strategy with atomic Redis IP &amp; `(IP + email)` rate limiting (cleared on success), generates `req.session.csrfToken` once on login, and triggers optional Jarvis founder toast (`FOUNDER_EMAIL`). |
 | `GET` | `/authenticate/signup` | Renders guest registration form with scoped client-side validation (`signupValidate.js`). |
-| `POST` | `/authenticate/signup/add` | Rate-limited &amp; CSRF-protected; validates via `signupSchema` (max 72-byte password), sends 6-digit OTP (10-min TTL), and caches pending signup in Redis. |
-| `POST` | `/authenticate/signup/verify-otp` | IP rate-limited &amp; CSRF-protected; timing-safe SHA-256 OTP check with **5-attempt lockout** (invalidates OTP in Redis), consumes/deletes all OTP Redis keys, creates verified user, and establishes session. |
-| `POST` | `/authenticate/signup/resend-otp` | IP + email rate-limited (max 3/15 min), Zod-validated &amp; CSRF-protected; generates fresh OTP and resets failed-attempt counter. |
+| `POST` | `/authenticate/signup/add` | Rate-limited &amp; Origin/Referer verified; validates via `signupSchema` (max 72-byte password), sends 6-digit OTP (10-min TTL), and caches pending signup in Redis. |
+| `POST` | `/authenticate/signup/verify-otp` | IP rate-limited &amp; Origin/Referer verified; timing-safe SHA-256 OTP check with **5-attempt lockout** (invalidates OTP in Redis), consumes/deletes all OTP Redis keys, creates verified user, establishes session, and generates `req.session.csrfToken`. |
+| `POST` | `/authenticate/signup/resend-otp` | IP + email rate-limited (max 3/15 min), Zod-validated &amp; Origin/Referer verified; generates fresh OTP and resets failed-attempt counter. |
 | `GET` | `/authenticate/google` | Triggers Google OAuth 2.0 consent flow. |
-| `GET` | `/authenticate/google/callback` | Verifies Google email (`email_verified === true`), blocks silent admin auto-linking, and establishes session. |
+| `GET` | `/authenticate/google/callback` | Verifies Google email (`email_verified === true`), blocks silent admin auto-linking, establishes session, and generates `req.session.csrfToken`. |
 | `GET` | `/authenticate/forgot-password` | Renders password recovery request form. |
-| `POST` | `/authenticate/forgot-password/submit` | Atomic IP + email rate-limited &amp; CSRF-protected; generates SHA-256 hashed 32-byte Redis token (10-min TTL) and dispatches email asynchronously (preventing timing enumeration). |
+| `POST` | `/authenticate/forgot-password/submit` | Atomic IP + email rate-limited &amp; Origin/Referer verified; generates SHA-256 hashed 32-byte Redis token (10-min TTL) and dispatches email asynchronously (preventing timing enumeration). |
 | `GET` | `/authenticate/forgot-password/:token` | Rate-limited; validates 64-hex token format &amp; Redis TTL and renders reset-password form (or redirects cleanly to `/authenticate/forgot-password`). |
-| `POST` | `/authenticate/reset-password/:token` | Rate-limited &amp; CSRF-protected; updates `bcrypt` hash, **increments `users.session_version`** to revoke all active sessions, deletes reset token, and emails a security alert. |
-| `POST` | `/authenticate/logout` | CSRF-protected; logs out Passport session, destroys Redis session record, and clears `stayora.sid` cookie. |
+| `POST` | `/authenticate/reset-password/:token` | Rate-limited &amp; Origin/Referer verified; updates `bcrypt` hash, **increments `users.session_version`** to revoke all active sessions, deletes reset token, and emails a security alert. |
+| `POST` | `/authenticate/logout` | Origin/Referer + CSRF-token verified; logs out via Passport 0.7 (regenerating &amp; clearing the old Redis session) and flashes confirmation. |
 
 ---
 
@@ -337,7 +341,8 @@ All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.u
 
 - [x] Comprehensive 11-table relational database architecture with foreign key integrity, booking policy snapshots, and `session_version` tracking
 - [x] Redis-backed session store (`connect-redis` + `ioredis`) with `stayora.sid`, `HttpOnly`, and `SameSite: "lax"` cookies
-- [x] Synchronizer-token CSRF protection (`middlewares/csrf.js`) + Origin/Referer verification + strict multipart route allowlist
+- [x] Synchronizer-token CSRF protection (`middlewares/csrf.js`) with zero `GET` session/token generation, login-time token issuance, `Origin`/`Referer` + proxy `X-Forwarded-Host` verification, `Referrer-Policy: strict-origin-when-cross-origin`, and strict multipart route allowlist
+- [x] Crash-proof `400` / `403` / `404` / `413` / `429` / `500` error handling with early template-local initialization, `100 KB` payload limits, and stress-tested concurrency &amp; race-condition resilience
 - [x] Local authentication with 12-round `bcrypt` (72-byte cap), timing-safe OTP verification with 5-attempt lockout, and Redis cleanup
 - [x] Verified Google OAuth 2.0 integration with admin auto-link protection
 - [x] End-to-end password recovery with SHA-256 hashed Redis tokens, async email dispatch, cross-device session invalidation, and security alert emails
