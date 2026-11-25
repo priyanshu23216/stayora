@@ -1,9 +1,14 @@
+// Redis helper functions for:
+// 1. Safe rate limiting (always guarantees an expiry time so users never get permanently locked)
+// 2. Fast O(1) listings cache invalidation (replaces slow `redis.keys("listingsBy*")`)
+
 import redis from "../config/redis.js";
 
-// Atomic INCR + EXPIRE via Lua script so a crash between commands can never cause a permanent lock
-const ATOMIC_INCR_EXPIRE_LUA = `
-local current = redis.call("INCR", KEYS[1])
-if current == 1 then
+// Small Redis script that runs INCR + EXPIRE together in one atomic step.
+// Why? If the server crashed between redis.incr() and redis.expire(), the key would stay forever!
+const ATOMIC_INCR_SCRIPT = `
+local count = redis.call("INCR", KEYS[1])
+if count == 1 then
     redis.call("EXPIRE", KEYS[1], tonumber(ARGV[1]))
 else
     local ttl = redis.call("TTL", KEYS[1])
@@ -11,26 +16,34 @@ else
         redis.call("EXPIRE", KEYS[1], tonumber(ARGV[1]))
     end
 end
-return current
+return count
 `;
 
+// Increase a rate-limit counter in Redis and guarantee it expires after ttlSeconds
 export async function atomicIncrWithExpiry(key, ttlSeconds) {
-    const count = await redis.eval(ATOMIC_INCR_EXPIRE_LUA, 1, key, String(ttlSeconds));
+    const count = await redis.eval(ATOMIC_INCR_SCRIPT, 1, key, String(ttlSeconds));
     return Number(count);
 }
 
+// Instead of scanning and deleting thousands of `listingsBy*` keys using slow redis.keys(),
+// we store a single version number (e.g. "1", "2", "3").
+// Every listings cache key includes this version (e.g. `listings:v2:goa:...`).
+// When any listing changes, we just do `INCR stayora:listings:version` (2 -> 3) in O(1) time!
 const LISTINGS_VERSION_KEY = "stayora:listings:version";
 
-// O(1) cache versioning replaces blocking O(N) `redis.keys("listingsBy*")`
 export async function getListingsCacheVersion() {
     try {
         const version = await redis.get(LISTINGS_VERSION_KEY);
-        return version || "1";
-    } catch {
+        if (version) {
+            return version;
+        }
+        return "1";
+    } catch (err) {
         return "1";
     }
 }
 
+// Clear all cached /listings pages and /categories page instantly in O(1) time
 export async function invalidateListingsListCache() {
     try {
         await redis.incr(LISTINGS_VERSION_KEY);
@@ -40,6 +53,7 @@ export async function invalidateListingsListCache() {
     }
 }
 
+// Clear one property's detail cache + all /listings & /categories caches
 export async function invalidatePropertyCache(propertyId) {
     try {
         if (propertyId) {
