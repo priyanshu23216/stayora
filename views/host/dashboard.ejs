@@ -12,7 +12,15 @@
             </p>
         </div>
 
-        <a href="/host/listings/new" class="host-new-btn">+ New Listing</a>
+        <div class="host-header-actions">
+            <a href="/host/bookings" class="host-bookings-btn">
+                Guest Bookings
+                <% if (typeof upcomingBookingsCount !== "undefined" && upcomingBookingsCount > 0) { %>
+                    <span class="host-bookings-badge"><%= upcomingBookingsCount %></span>
+                <% } %>
+            </a>
+            <a href="/host/listings/new" class="host-new-btn">+ New Listing</a>
+        </div>
     </header>
 
     <% if (listings.length === 0) { %>

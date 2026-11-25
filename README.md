@@ -278,7 +278,8 @@ All `/host/*` routes are protected by `isLoggedIn` + `isHost` RBAC middleware, e
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/host/dashboard` | Displays all properties listed by the logged-in host (newest first) with status badges and `+ New Listing` CTA. |
+| `GET` | `/host/dashboard` | Displays all properties listed by the logged-in host (newest first) with status badges, upcoming guest bookings badge, and `+ New Listing` CTA. |
+| `GET` | `/host/bookings` | Displays all guest reservations across the logged-in host's properties with auto check-out completion sync, 4 KPI cards (All, Upcoming &amp; Ongoing, Completed, Earned Revenue), segmented status tabs, IDOR-safe property filter dropdown, guest contact details, policy snapshots, and 10-per-page pagination. |
 | `GET` | `/host/listings/new` | Renders the multipart form to create a new property with property-level amenities. |
 | `POST` | `/host/listings` | Rate-limited, CSRF-verified, Zod-validated (`newListingSchema`), binary magic-byte checked, streams cover &amp; gallery images to Cloudinary (with rollback cleanup), inserts property + images + amenities (`verification_status = 'pending'`). |
 | `GET` | `/host/listings/:propertyId` | **View More** page showing full property details, rejection reason banner (if rejected), gallery, amenities, Edit/Delete actions, and all nested rooms. |
@@ -311,7 +312,7 @@ All `/bookings/*` routes are protected by `isLoggedIn` + `isGuest` (accessible t
 | `POST` | `/bookings/new/:roomId` | Rate-limited, CSRF-verified, Zod-validated (`bookingSchema`, max 60 nights, max 365 days advance, max 15 active bookings/user, 2-min duplicate-submit guard). Executes MySQL transaction with `SELECT ... FOR UPDATE`, computes **peak nightly occupancy**, snapshots `cancellation_policy`, commits booking, sends confirmation email, and redirects to `/guest/dashboard`. |
 
 ### My Bookings & Cancellations (`/guest`)
-All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.user.ID` ownership checks.
+All `/guest/*` routes are protected by `isLoggedIn` + `isGuest` (guests &amp; hosts only; admin accounts blocked) and enforce `USER_ID = req.user.ID` ownership checks.
 
 | Method | Endpoint | Description |
 |---|---|---|
@@ -358,7 +359,7 @@ All `/guest/*` routes are protected by `isLoggedIn` and enforce `USER_ID = req.u
 - [x] Multi-role My Bookings dashboard (`/guest/dashboard`) with policy-snapshotted cancellations, `FOR UPDATE` atomic cancel, and auto check-out sync
 - [x] Production-guarded seeding script (`scripts/seed.js`) &amp; idempotent security migration script (`scripts/migrate-security.js`)
 - [ ] Payment gateway integration (Razorpay / Stripe with signed webhook verification &amp; pending hold TTL)
-- [ ] Host bookings management (`/host/bookings`)
+- [x] Host bookings management (`/host/bookings`) with KPI revenue tracking, auto check-out sync, status tabs, IDOR-safe property filter, and pagination
 - [ ] Verified guest review and rating submission system
 - [ ] Soft-deletes (`deleted_at`) &amp; immutable `admin_audit_logs` table
 

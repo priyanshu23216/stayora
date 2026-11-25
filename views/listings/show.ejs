@@ -243,7 +243,9 @@
                             <% } %>
 
                             <div class="room-actions">
-                                <% if (property.AVAILABILITY_STATUS === 'available' && room.TOTAL_ROOMS > 0) { %>
+                                <% if (currentUser && currentUser.ROLE === 'admin') { %>
+                                    <span class="room-book-btn room-book-disabled">Admin View Only</span>
+                                <% } else if (property.AVAILABILITY_STATUS === 'available' && room.TOTAL_ROOMS > 0) { %>
                                     <a href="/bookings/new/<%= room.ID %>" class="room-book-btn">Book This Room</a>
                                 <% } else { %>
                                     <span class="room-book-btn room-book-disabled">Not Available</span>

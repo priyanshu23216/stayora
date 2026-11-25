@@ -9,6 +9,7 @@ import { newListingSchema, editListingSchema, roomSchema } from "../utils/valida
 import { uploadBufferToCloudinary, destroyCloudinaryAssets } from "../utils/cloudinaryUpload.js";
 import { validateUploadedImages } from "../utils/imageValidation.js";
 import { atomicIncrWithExpiry, invalidatePropertyCache } from "../utils/redisHelpers.js";
+import { calculateCancellationDetails, formatDisplayDate } from "../utils/cancellationPolicy.js";
 
 const hostRouter = express.Router();
 
@@ -156,8 +157,19 @@ function computePeakFutureOccupancy(bookings) {
     return peak;
 }
 
+// Helper 7: Format local Date as MySQL TIMESTAMP string (keeps Node & MySQL check-out sync consistent)
+function formatLocalSqlTimestamp(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    const hh = String(dateObj.getHours()).padStart(2, "0");
+    const mm = String(dateObj.getMinutes()).padStart(2, "0");
+    const ss = String(dateObj.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+}
+
 /* ==========================================================================
-   PROPERTY CRUD ROUTES
+   PROPERTY CRUD & HOST BOOKINGS ROUTES
    ========================================================================== */
 
 // 1. GET /host/dashboard -> Show all properties listed by this host (newest first)
@@ -168,9 +180,264 @@ hostRouter.get("/dashboard", async (req, res, next) => {
             [req.user.ID]
         );
 
+        const [activeBookingRows] = await db.execute(
+            `SELECT COUNT(*) AS total
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE properties.HOST_ID = ?
+               AND bookings.STATUS IN ('pending', 'confirmed')
+               AND bookings.CHECK_OUT_DATE >= CURDATE()`,
+            [req.user.ID]
+        );
+        const upcomingBookingsCount = Number(activeBookingRows[0]?.total || 0);
+
         return res.render("host/dashboard", {
             title: "Host Dashboard",
             listings,
+            upcomingBookingsCount,
+        });
+    } catch (err) {
+        return next(err);
+    }
+});
+
+// 1B. GET /host/bookings -> Show all guest reservations across this host's properties
+hostRouter.get("/bookings", async (req, res, next) => {
+    try {
+        const hostId = req.user.ID;
+
+        // Step 1: Mark past confirmed bookings as "completed" once their check-out time has passed
+        const nowTimestamp = formatLocalSqlTimestamp(new Date());
+        await db.execute(
+            `UPDATE bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             SET bookings.STATUS = 'completed'
+             WHERE properties.HOST_ID = ?
+               AND bookings.STATUS = 'confirmed'
+               AND TIMESTAMP(bookings.CHECK_OUT_DATE, IFNULL(properties.check_out_time, '11:00:00')) <= ?`,
+            [hostId, nowTimestamp]
+        );
+
+        // Step 2: Fetch all properties owned by this host (used for the property filter dropdown)
+        const [hostProperties] = await db.execute(
+            `SELECT ID, title, city
+             FROM properties
+             WHERE HOST_ID = ?
+             ORDER BY title ASC`,
+            [hostId]
+        );
+
+        // Step 3: Read optional tab filter (?status=all | upcoming | completed | cancelled)
+        let status = typeof req.query.status === "string" ? req.query.status : "all";
+        if (status !== "upcoming" && status !== "completed" && status !== "cancelled") {
+            status = "all";
+        }
+
+        // Step 4: Read optional property filter (?propertyId=...) and verify this host owns it
+        let selectedPropertyId = "";
+        if (typeof req.query.propertyId === "string" && isValidUuid(req.query.propertyId)) {
+            for (let prop of hostProperties) {
+                if (prop.ID === req.query.propertyId) {
+                    selectedPropertyId = prop.ID;
+                    break;
+                }
+            }
+        }
+
+        // Step 5: Read page number safely (10 bookings per page)
+        let page = parseInt(typeof req.query.page === "string" ? req.query.page : "1", 10);
+        if (!Number.isInteger(page) || page < 1) {
+            page = 1;
+        }
+        const limit = 10;
+
+        // Build simple WHERE filter (always locked to this host's properties)
+        let propertyFilterSql = "";
+        const filterParams = [hostId];
+        if (selectedPropertyId) {
+            propertyFilterSql = "AND properties.ID = ?";
+            filterParams.push(selectedPropertyId);
+        }
+
+        // Step 6: Fetch simple KPI counts and total earned revenue (excluding cancelled bookings)
+        const [upcomingCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE properties.HOST_ID = ? ${propertyFilterSql}
+               AND bookings.STATUS IN ('pending', 'confirmed')`,
+            filterParams
+        );
+
+        const [completedCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE properties.HOST_ID = ? ${propertyFilterSql}
+               AND bookings.STATUS = 'completed'`,
+            filterParams
+        );
+
+        const [cancelledCountRows] = await db.execute(
+            `SELECT COUNT(*) AS total
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE properties.HOST_ID = ? ${propertyFilterSql}
+               AND bookings.STATUS = 'cancelled'`,
+            filterParams
+        );
+
+        const [revenueRows] = await db.execute(
+            `SELECT SUM(bookings.TOTAL_AMOUNT) AS total
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             WHERE properties.HOST_ID = ? ${propertyFilterSql}
+               AND bookings.STATUS IN ('confirmed', 'completed')`,
+            filterParams
+        );
+
+        const upcomingCount = Number(upcomingCountRows[0].total || 0);
+        const completedCount = Number(completedCountRows[0].total || 0);
+        const cancelledCount = Number(cancelledCountRows[0].total || 0);
+        const totalRevenue = Number(revenueRows[0].total || 0);
+
+        const stats = {
+            all: upcomingCount + completedCount + cancelledCount,
+            upcoming: upcomingCount,
+            completed: completedCount,
+            cancelled: cancelledCount,
+            revenue: totalRevenue,
+            revenueFormatted: totalRevenue.toLocaleString("en-IN"),
+        };
+
+        // Step 7: Calculate total pages for the active tab
+        let activeTotal = stats.all;
+        if (status === "upcoming") {
+            activeTotal = stats.upcoming;
+        } else if (status === "completed") {
+            activeTotal = stats.completed;
+        } else if (status === "cancelled") {
+            activeTotal = stats.cancelled;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(activeTotal / limit));
+        if (page > totalPages) {
+            page = totalPages;
+        }
+        const offset = (page - 1) * limit;
+
+        let statusCondition = "";
+        if (status === "upcoming") {
+            statusCondition = "AND bookings.STATUS IN ('pending', 'confirmed')";
+        } else if (status === "completed") {
+            statusCondition = "AND bookings.STATUS = 'completed'";
+        } else if (status === "cancelled") {
+            statusCondition = "AND bookings.STATUS = 'cancelled'";
+        }
+
+        // Step 8: Fetch paginated bookings joined with rooms, properties, and users (the guest)
+        const queryParams = filterParams.slice();
+        queryParams.push(String(limit), String(offset));
+
+        const [rawBookings] = await db.execute(
+            `SELECT bookings.ID,
+                    bookings.ROOM_ID,
+                    bookings.CHECK_IN_DATE,
+                    bookings.CHECK_OUT_DATE,
+                    bookings.GUESTS,
+                    bookings.TOTAL_AMOUNT,
+                    bookings.STATUS,
+                    bookings.CREATED_AT,
+                    bookings.cancellation_policy AS booking_policy,
+                    rooms.ROOM_TYPE,
+                    rooms.PRICE_PER_NIGHT,
+                    properties.ID AS property_id,
+                    properties.title AS property_title,
+                    properties.image AS property_image,
+                    properties.city AS property_city,
+                    properties.state AS property_state,
+                    properties.verification_status AS property_verification_status,
+                    properties.check_in_time,
+                    properties.check_out_time,
+                    properties.cancellation_policy AS property_policy,
+                    users.NAME AS guest_name,
+                    users.EMAIL AS guest_email,
+                    users.phone AS guest_phone
+             FROM bookings
+             JOIN rooms ON bookings.ROOM_ID = rooms.ID
+             JOIN properties ON rooms.property_id = properties.ID
+             JOIN users ON bookings.USER_ID = users.ID
+             WHERE properties.HOST_ID = ?
+               ${propertyFilterSql}
+               ${statusCondition}
+             ORDER BY bookings.CREATED_AT DESC, bookings.ID DESC
+             LIMIT ? OFFSET ?`,
+            queryParams
+        );
+
+        // Step 9: Format dates, nights, policy, and ongoing status for display in EJS
+        const bookings = [];
+        for (let item of rawBookings) {
+            const checkInMs = new Date(`${item.CHECK_IN_DATE}T00:00:00`);
+            const checkOutMs = new Date(`${item.CHECK_OUT_DATE}T00:00:00`);
+            const nights = Math.max(1, Math.round((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)));
+
+            // Use the policy saved at booking time; fall back to property policy for older rows
+            const policyToUse = item.booking_policy || item.property_policy;
+            const details = calculateCancellationDetails({
+                STATUS: item.STATUS,
+                CHECK_IN_DATE: item.CHECK_IN_DATE,
+                CHECK_OUT_DATE: item.CHECK_OUT_DATE,
+                check_in_time: item.check_in_time,
+                check_out_time: item.check_out_time,
+                TOTAL_AMOUNT: item.TOTAL_AMOUNT,
+                cancellation_policy: policyToUse,
+            });
+
+            bookings.push({
+                ID: item.ID,
+                ROOM_ID: item.ROOM_ID,
+                GUESTS: item.GUESTS,
+                STATUS: item.STATUS,
+                ROOM_TYPE: item.ROOM_TYPE,
+                property_id: item.property_id,
+                property_title: item.property_title,
+                property_image: item.property_image,
+                property_city: item.property_city,
+                property_state: item.property_state,
+                property_verification_status: item.property_verification_status,
+                guest_name: item.guest_name,
+                guest_email: item.guest_email,
+                guest_phone: item.guest_phone,
+                nights: nights,
+                amountFormatted: Number(item.TOTAL_AMOUNT || 0).toLocaleString("en-IN"),
+                checkInDisplay: formatDisplayDate(item.CHECK_IN_DATE),
+                checkOutDisplay: formatDisplayDate(item.CHECK_OUT_DATE),
+                bookedOnDisplay: item.CREATED_AT ? formatDisplayDate(item.CREATED_AT) : "",
+                isOngoing: details.isOngoing,
+                policyText: details.policyText,
+            });
+        }
+
+        // Extra query string appended to tab & pagination links when a property is selected
+        const propertyQuery = selectedPropertyId ? `&propertyId=${selectedPropertyId}` : "";
+
+        return res.render("host/bookings", {
+            title: "Guest Bookings",
+            stats: stats,
+            status: status,
+            selectedPropertyId: selectedPropertyId,
+            propertyQuery: propertyQuery,
+            hostProperties: hostProperties,
+            bookings: bookings,
+            currentPage: page,
+            totalPages: totalPages,
         });
     } catch (err) {
         return next(err);

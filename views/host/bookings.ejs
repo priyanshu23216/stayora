@@ -1,0 +1,200 @@
+<section class="guest-page host-bookings-page">
+    <div class="host-breadcrumb">
+        <a href="/host/dashboard" class="host-back-link">&larr; Back to My Dashboard</a>
+    </div>
+
+    <!-- 1. Page Header -->
+    <header class="guest-header">
+        <div>
+            <span class="guest-eyebrow">Host Portal</span>
+            <h1 class="guest-title">Guest Bookings</h1>
+            <p class="guest-subtitle">Track reservations, active stays, guest contacts, and earnings across your properties.</p>
+        </div>
+        <div class="host-header-actions">
+            <a href="/host/dashboard" class="guest-btn-secondary">My Listings</a>
+            <a href="/host/listings/new" class="guest-explore-btn">+ New Listing</a>
+        </div>
+    </header>
+
+    <!-- 2. KPI Summary Cards -->
+    <div class="guest-kpi-grid">
+        <a href="/host/bookings?status=all<%= propertyQuery %>" class="guest-kpi-card">
+            <span class="guest-kpi-label">All Bookings</span>
+            <span class="guest-kpi-value"><%= stats.all %></span>
+        </a>
+
+        <a href="/host/bookings?status=upcoming<%= propertyQuery %>" class="guest-kpi-card guest-kpi-upcoming">
+            <span class="guest-kpi-label">Upcoming &amp; Ongoing</span>
+            <span class="guest-kpi-value"><%= stats.upcoming %></span>
+        </a>
+
+        <a href="/host/bookings?status=completed<%= propertyQuery %>" class="guest-kpi-card guest-kpi-completed">
+            <span class="guest-kpi-label">Completed Stays</span>
+            <span class="guest-kpi-value"><%= stats.completed %></span>
+        </a>
+
+        <div class="guest-kpi-card host-kpi-revenue">
+            <span class="guest-kpi-label">Earned Revenue</span>
+            <span class="guest-kpi-value">&#8377;<%= stats.revenueFormatted %></span>
+        </div>
+    </div>
+
+    <!-- 3. Segmented Filter Tabs + Property Filter -->
+    <div class="host-filter-bar">
+        <nav class="guest-tabs-wrap host-tabs-inline" aria-label="Filter guest bookings by status">
+            <div class="guest-tabs">
+                <a href="/host/bookings?status=all<%= propertyQuery %>" class="guest-tab <% if (status === 'all') { %>is-active<% } %>">
+                    All <span><%= stats.all %></span>
+                </a>
+
+                <a href="/host/bookings?status=upcoming<%= propertyQuery %>" class="guest-tab <% if (status === 'upcoming') { %>is-active<% } %>">
+                    Upcoming <span><%= stats.upcoming %></span>
+                </a>
+
+                <a href="/host/bookings?status=completed<%= propertyQuery %>" class="guest-tab <% if (status === 'completed') { %>is-active<% } %>">
+                    Completed <span><%= stats.completed %></span>
+                </a>
+
+                <a href="/host/bookings?status=cancelled<%= propertyQuery %>" class="guest-tab <% if (status === 'cancelled') { %>is-active<% } %>">
+                    Cancelled <span><%= stats.cancelled %></span>
+                </a>
+            </div>
+        </nav>
+
+        <% if (hostProperties.length > 0) { %>
+            <form action="/host/bookings" method="GET" class="host-property-filter" id="hostPropertyFilterForm">
+                <% if (status !== "all") { %>
+                    <input type="hidden" name="status" value="<%= status %>">
+                <% } %>
+                <label for="hostPropertyFilterSelect" class="host-filter-label">Property</label>
+                <select name="propertyId" id="hostPropertyFilterSelect" class="host-filter-select">
+                    <option value="">All Properties (<%= hostProperties.length %>)</option>
+                    <% for (let prop of hostProperties) { %>
+                        <option value="<%= prop.ID %>" <% if (selectedPropertyId === prop.ID) { %>selected<% } %>>
+                            <%= prop.title %> - <%= prop.city %>
+                        </option>
+                    <% } %>
+                </select>
+                <noscript>
+                    <button type="submit" class="guest-btn-secondary">Filter</button>
+                </noscript>
+            </form>
+        <% } %>
+    </div>
+
+    <!-- 4. Guest Bookings List -->
+    <% if (bookings.length === 0) { %>
+        <div class="guest-empty">
+            <h2>No guest bookings found</h2>
+            <% if (hostProperties.length === 0) { %>
+                <p>List your first property on Stayora to start receiving guest reservations.</p>
+                <a href="/host/listings/new" class="guest-primary-btn">+ Create Your First Listing</a>
+            <% } else if (status !== "all" || selectedPropertyId) { %>
+                <p>No reservations match your current status or property filter.</p>
+                <a href="/host/bookings" class="guest-primary-btn">Show All Bookings</a>
+            <% } else { %>
+                <p>When guests reserve rooms at your properties, their stay details and earnings will appear here.</p>
+                <a href="/host/dashboard" class="guest-primary-btn">Manage My Listings</a>
+            <% } %>
+        </div>
+    <% } else { %>
+        <div class="guest-bookings-list">
+            <% for (let booking of bookings) { %>
+                <article class="guest-booking-card">
+                    <div class="guest-booking-media">
+                        <img src="<%= booking.property_image %>" alt="<%= booking.property_title %>" class="guest-booking-img">
+                        <% if (booking.isOngoing) { %>
+                            <span class="guest-status-badge guest-status-ongoing">Ongoing</span>
+                        <% } else { %>
+                            <span class="guest-status-badge guest-status-<%= booking.STATUS %>">
+                                <%= booking.STATUS %>
+                            </span>
+                        <% } %>
+                    </div>
+
+                    <div class="guest-booking-body">
+                        <div class="guest-booking-top">
+                            <div>
+                                <p class="guest-booking-location"><%= booking.property_city %>, <%= booking.property_state %></p>
+                                <h2 class="guest-booking-title">
+                                    <a href="/host/listings/<%= booking.property_id %>" class="host-booking-title-link">
+                                        <%= booking.property_title %>
+                                    </a>
+                                </h2>
+                                <p class="guest-booking-room">
+                                    <%= booking.ROOM_TYPE %> &middot; <%= booking.GUESTS %> <%= booking.GUESTS === 1 ? "Guest" : "Guests" %> &middot; <%= booking.nights %> <%= booking.nights === 1 ? "Night" : "Nights" %>
+                                </p>
+                            </div>
+
+                            <div class="guest-booking-price-box">
+                                <span class="guest-booking-price-label">
+                                    <%= booking.STATUS === "cancelled" ? "Cancelled" : "Booking Amount" %>
+                                </span>
+                                <span class="guest-booking-price <% if (booking.STATUS === 'cancelled') { %>host-price-cancelled<% } %>">
+                                    &#8377;<%= booking.amountFormatted %>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="guest-booking-meta-grid">
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Check-In</span>
+                                <span class="guest-meta-value"><%= booking.checkInDisplay %></span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Check-Out</span>
+                                <span class="guest-meta-value"><%= booking.checkOutDisplay %></span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Guest</span>
+                                <span class="guest-meta-value host-guest-contact">
+                                    <span><%= booking.guest_name %></span>
+                                    <a href="mailto:<%= booking.guest_email %>" class="guest-host-link host-guest-sub"><%= booking.guest_email %></a>
+                                    <% if (booking.guest_phone) { %>
+                                        <span class="host-guest-sub"><%= booking.guest_phone %></span>
+                                    <% } %>
+                                </span>
+                            </div>
+                            <div class="guest-meta-item">
+                                <span class="guest-meta-label">Booking Ref</span>
+                                <span class="guest-meta-value guest-ref">#<%= booking.ID.slice(0, 8).toUpperCase() %></span>
+                                <% if (booking.bookedOnDisplay) { %>
+                                    <span class="host-guest-sub">Booked <%= booking.bookedOnDisplay %></span>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <p class="guest-policy-line">
+                            <strong>Policy Snapshot:</strong> <%= booking.policyText %>
+                        </p>
+
+                        <div class="guest-booking-actions">
+                            <a href="/host/listings/<%= booking.property_id %>" class="guest-btn-secondary">Manage Property</a>
+                            <% if (booking.property_verification_status === "approved") { %>
+                                <a href="/listings/<%= booking.property_id %>" class="guest-btn-secondary">View Public Page</a>
+                            <% } %>
+                            <a href="mailto:<%= booking.guest_email %>?subject=<%= encodeURIComponent('Regarding your Stayora booking at ' + booking.property_title) %>" class="host-contact-guest-btn">
+                                Contact Guest
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            <% } %>
+        </div>
+
+        <!-- 5. Pagination -->
+        <nav class="pagination guest-pagination" aria-label="Host bookings pagination">
+            <% if (currentPage > 1) { %>
+                <a href="/host/bookings?status=<%= status %><%= propertyQuery %>&page=<%= currentPage - 1 %>" class="pagination-btn">&larr; Previous</a>
+            <% } %>
+
+            <span class="pagination-info">Page <%= currentPage %> of <%= totalPages %></span>
+
+            <% if (currentPage < totalPages) { %>
+                <a href="/host/bookings?status=<%= status %><%= propertyQuery %>&page=<%= currentPage + 1 %>" class="pagination-btn">Next &rarr;</a>
+            <% } %>
+        </nav>
+    <% } %>
+</section>
+
+<script src="/js/hostBookings.js" defer></script>

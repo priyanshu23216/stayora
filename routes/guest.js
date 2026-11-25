@@ -1,6 +1,6 @@
 import express from "express";
 import db from "../config/db.js";
-import { isLoggedIn, isValidUuid } from "../middlewares/auth.js";
+import { isLoggedIn, isGuest, isValidUuid } from "../middlewares/auth.js";
 import { sendBookingCancellation } from "../utils/mailer.js";
 import {
     calculateCancellationDetails,
@@ -9,8 +9,8 @@ import {
 
 const guestRouter = express.Router();
 
-// Protect all /guest/* routes: any logged-in user can view & manage their own bookings
-guestRouter.use(isLoggedIn);
+// Protect all /guest/* routes: only guests and hosts can view/manage personal trips (admins blocked)
+guestRouter.use(isLoggedIn, isGuest);
 
 function formatLocalSqlTimestamp(dateObj) {
     const y = dateObj.getFullYear();
