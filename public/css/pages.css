@@ -238,11 +238,17 @@
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 16px;
     padding: 18px 22px;
-    transition: border-color 0.2s ease;
+    scroll-margin-top: 104px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .faq-item[open] {
     border-color: rgba(0, 0, 0, 0.18);
+}
+
+.faq-item:target {
+    border-color: #0071e3;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.14);
 }
 
 .faq-item summary {

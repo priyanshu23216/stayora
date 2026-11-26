@@ -44,4 +44,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         window.setTimeout(dismissToast, 5000);
     }
+
+    // Auto-open and scroll to targeted <details> FAQ item (e.g. /help#hosting-guide)
+    const openTargetedFaq = () => {
+        if (!window.location.hash) return;
+        const targetId = decodeURIComponent(window.location.hash.slice(1));
+        const targetEl = document.getElementById(targetId);
+        if (targetEl && targetEl.tagName === "DETAILS") {
+            targetEl.open = true;
+            window.requestAnimationFrame(() => {
+                targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+        }
+    };
+
+    openTargetedFaq();
+    window.addEventListener("hashchange", openTargetedFaq);
 });
