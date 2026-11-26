@@ -445,7 +445,7 @@ export const resetPassEmail = async (toEmail, message) => {
                                     ${bodyContent}
 
                                     <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6b7280; text-align: center;">
-                                        If you did not request this, you can safely ignore this email — your account remains secure.
+                                        If you did not request this, you can safely ignore this email - your account remains secure.
                                     </p>
                                 </td>
                             </tr>
