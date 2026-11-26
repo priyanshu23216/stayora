@@ -56,12 +56,18 @@ lists.get("/", async (req, res, next) => {
 
         const limit = 12;
 
-        // Step 3: Check Redis cache first using O(1) cache version number
+        // Step 3: Check Redis cache first using O(1) cache version number (fall back to MySQL if Redis is down)
         const cacheVersion = await getListingsCacheVersion();
         const cityKey = city ? city.toLowerCase() : "all";
         const cacheKey = `listings:v${cacheVersion}:${cityKey}:${type}:${price}:${sort}:${page}`;
 
-        const cachedValue = await redis.get(cacheKey);
+        let cachedValue = null;
+        try {
+            cachedValue = await redis.get(cacheKey);
+        } catch (cacheErr) {
+            console.error("Listings cache read error (falling back to MySQL):", cacheErr.message);
+        }
+
         if (cachedValue) {
             const parsedObj = JSON.parse(cachedValue);
             return res.render("listings/listings", {
@@ -150,12 +156,16 @@ lists.get("/", async (req, res, next) => {
         // Step 7: Save non-empty results in Redis for 10 minutes (skip empty results to save Redis memory)
         if (listings.length > 0) {
             const finalCacheKey = `listings:v${cacheVersion}:${cityKey}:${type}:${price}:${sort}:${page}`;
-            await redis.set(
-                finalCacheKey,
-                JSON.stringify({ listings: listings, totalPages: totalPages, currentPage: page }),
-                "EX",
-                600
-            );
+            try {
+                await redis.set(
+                    finalCacheKey,
+                    JSON.stringify({ listings: listings, totalPages: totalPages, currentPage: page }),
+                    "EX",
+                    600
+                );
+            } catch (cacheErr) {
+                console.error("Listings cache write error:", cacheErr.message);
+            }
         }
 
         return res.render("listings/listings", {
@@ -219,8 +229,14 @@ lists.get("/:id", async (req, res, next) => {
 
         const cacheKey = `property:${propertyId}`;
 
-        // Step 1: Check Redis cache first
-        const cachedData = await redis.get(cacheKey);
+        // Step 1: Check Redis cache first (fall back to MySQL if Redis is down)
+        let cachedData = null;
+        try {
+            cachedData = await redis.get(cacheKey);
+        } catch (cacheErr) {
+            console.error("Property cache read error (falling back to MySQL):", cacheErr.message);
+        }
+
         if (cachedData) {
             const parsedData = JSON.parse(cachedData);
             return res.render("listings/show", {
@@ -344,7 +360,11 @@ lists.get("/:id", async (req, res, next) => {
             reviews: reviews,
             avgRating: avgRating,
         };
-        await redis.set(cacheKey, JSON.stringify(dataToCache), "EX", 600);
+        try {
+            await redis.set(cacheKey, JSON.stringify(dataToCache), "EX", 600);
+        } catch (cacheErr) {
+            console.error("Property cache write error:", cacheErr.message);
+        }
 
         return res.render("listings/show", {
             title: property.title,

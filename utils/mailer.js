@@ -372,11 +372,54 @@ export const sendBookingCancellation = async (toEmail, booking) => {
 
 
 export const resetPassEmail = async (toEmail, message) => {
-    const safeMessage = escapeHtml(message);
+    const trimmed = String(message ?? "").trim();
+    const isResetLink = /^https?:\/\//i.test(trimmed);
+    const safeMessage = escapeHtml(trimmed);
+
+    const subject = isResetLink
+        ? "Stayora - Reset Your Password"
+        : "Stayora - Regarding Password Reset";
+
+    const bodyContent = isResetLink
+        ? `
+            <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: #1f2937; text-align: center;">Reset Your Password</h2>
+            <p style="margin: 0 0 26px; font-size: 15px; line-height: 24px; color: #4b5563; text-align: center;">
+                We received a request to reset your Stayora password. Click the button below to set a new password:
+            </p>
+
+            <div style="text-align: center; margin: 0 0 26px;">
+                <a href="${safeMessage}" style="display: inline-block; background-color: #0071e3; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 13px 28px; border-radius: 999px;">
+                    Reset Password
+                </a>
+            </div>
+
+            <p style="margin: 0 0 14px; font-size: 13px; color: #6b7280; text-align: center;">
+                ⏳ This link is valid for <strong>10 minutes</strong>.
+            </p>
+
+            <div style="background-color: #f9fafb; border-left: 4px solid #0071e3; border-radius: 6px; padding: 14px 16px; margin-bottom: 22px;">
+                <p style="margin: 0 0 6px; font-size: 12px; color: #6b7280;">
+                    If the button doesn't work, copy and paste this link into your browser:
+                </p>
+                <p style="margin: 0; font-size: 13px; line-height: 20px; word-break: break-all;">
+                    <a href="${safeMessage}" style="color: #0071e3; text-decoration: none;">${safeMessage}</a>
+                </p>
+            </div>
+        `
+        : `
+            <h2 style="margin: 0 0 14px; font-size: 20px; font-weight: 700; color: #1f2937; text-align: center;">Account Sign-In Notice</h2>
+
+            <div style="background-color: #f9fafb; border-left: 4px solid #0071e3; border-radius: 6px; padding: 16px 18px; margin-bottom: 22px;">
+                <p style="margin: 0; font-size: 15px; line-height: 24px; color: #374151;">
+                    ${safeMessage}
+                </p>
+            </div>
+        `;
+
     const mailOptions = {
         from: `"Stayora" <${process.env.EMAIL_USER}>`,
         to: toEmail,
-        subject: "Stayora - Regarding Password Reset",
+        subject: subject,
         html: `
         <!DOCTYPE html>
         <html>
@@ -399,13 +442,7 @@ export const resetPassEmail = async (toEmail, message) => {
                             <!-- Body Content -->
                             <tr>
                                 <td style="padding: 35px 35px 28px;">
-                                    <h2 style="margin: 0 0 14px; font-size: 20px; font-weight: 700; color: #1f2937; text-align: center;">Account Sign-In Notice</h2>
-
-                                    <div style="background-color: #f9fafb; border-left: 4px solid #0071e3; border-radius: 6px; padding: 16px 18px; margin-bottom: 22px;">
-                                        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #374151;">
-                                            ${safeMessage}
-                                        </p>
-                                    </div>
+                                    ${bodyContent}
 
                                     <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6b7280; text-align: center;">
                                         If you did not request this, you can safely ignore this email — your account remains secure.

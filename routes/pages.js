@@ -9,8 +9,13 @@ pageRouter.get("/categories", async (req, res, next) => {
     try {
         const cacheKey = "categories:all";
 
-        // Step 1: Check if categories data is already stored in Redis cache
-        const cachedData = await redis.get(cacheKey);
+        // Step 1: Check if categories data is already stored in Redis cache (fall back to MySQL if Redis is down)
+        let cachedData = null;
+        try {
+            cachedData = await redis.get(cacheKey);
+        } catch (cacheErr) {
+            console.error("Categories cache read error (falling back to MySQL):", cacheErr.message);
+        }
 
         if (cachedData) {
             const parsedCategories = JSON.parse(cachedData);
@@ -53,7 +58,11 @@ pageRouter.get("/categories", async (req, res, next) => {
         }
 
         // Step 4: Save the categories array in Redis cache for 10 minutes (600 seconds)
-        await redis.set(cacheKey, JSON.stringify(categories), "EX", 600);
+        try {
+            await redis.set(cacheKey, JSON.stringify(categories), "EX", 600);
+        } catch (cacheErr) {
+            console.error("Categories cache write error:", cacheErr.message);
+        }
 
         // Step 5: Render the categories EJS page
         return res.render("pages/categories", {
@@ -70,8 +79,14 @@ pageRouter.get("/destinations", async (req, res, next) => {
     try {
         const cacheKey = "destinations:popular";
 
-        // Step 1: Check if popular destinations data is already cached in Redis
-        const cachedData = await redis.get(cacheKey);
+        // Step 1: Check if popular destinations data is already cached in Redis (fall back to MySQL if Redis is down)
+        let cachedData = null;
+        try {
+            cachedData = await redis.get(cacheKey);
+        } catch (cacheErr) {
+            console.error("Destinations cache read error (falling back to MySQL):", cacheErr.message);
+        }
+
         if (cachedData) {
             const parsedDestinations = JSON.parse(cachedData);
             return res.render("pages/destinations", {
@@ -120,7 +135,11 @@ pageRouter.get("/destinations", async (req, res, next) => {
         }
 
         // Step 4: Save destinations in Redis cache for 10 minutes (600 seconds)
-        await redis.set(cacheKey, JSON.stringify(destinations), "EX", 600);
+        try {
+            await redis.set(cacheKey, JSON.stringify(destinations), "EX", 600);
+        } catch (cacheErr) {
+            console.error("Destinations cache write error:", cacheErr.message);
+        }
 
         // Step 5: Render the Popular Destinations EJS page
         return res.render("pages/destinations", {
