@@ -16,7 +16,7 @@ const MAX_ACTIVE_BOOKINGS = 15;       // Max upcoming bookings allowed per user
 bookingRouter.use(isLoggedIn, isGuest);
 
 // Helper 1: Format a JS Date as "YYYY-MM-DD" in local time
-function formatTodayDate(dateObj) {
+function formatDate(dateObj) {
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
     const day = String(dateObj.getDate()).padStart(2, "0");
@@ -27,12 +27,11 @@ function formatTodayDate(dateObj) {
 // Example: If room has 2 units, Guest A booked Dec 1-3 and Guest B booked Dec 3-5,
 // then on any single night between Dec 1-5 only 1 unit is occupied -> so Guest C CAN still book Dec 1-5!
 export function getPeakNightlyOccupancy(overlappingBookings, checkInStr, nights) {
-    const startMs = new Date(`${checkInStr}T00:00:00Z`).getTime();
-    const oneDayMs = 24 * 60 * 60 * 1000;
+    const currentDate = new Date(`${checkInStr}T00:00:00`);
     let busiestNightCount = 0;
 
     for (let i = 0; i < nights; i++) {
-        const currentNight = new Date(startMs + i * oneDayMs).toISOString().slice(0, 10);
+        const currentNight = formatDate(currentDate);
         let roomsUsedThisNight = 0;
 
         for (let booking of overlappingBookings) {
@@ -44,6 +43,9 @@ export function getPeakNightlyOccupancy(overlappingBookings, checkInStr, nights)
         if (roomsUsedThisNight > busiestNightCount) {
             busiestNightCount = roomsUsedThisNight;
         }
+
+        // Move to the next calendar day
+        currentDate.setDate(currentDate.getDate() + 1);
     }
 
     return busiestNightCount;
@@ -128,7 +130,7 @@ bookingRouter.get("/new/:roomId", async (req, res, next) => {
             roomImage = imageResult[0][0].IMAGE_URL;
         }
 
-        const today = formatTodayDate(new Date());
+        const today = formatDate(new Date());
 
         return res.render("bookings/new", {
             title: `Book ${room.ROOM_TYPE}`,
@@ -256,7 +258,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
              WHERE USER_ID = ?
                AND STATUS IN ('pending', 'confirmed')
                AND CHECK_OUT_DATE >= ?`,
-            [req.user.ID, formatTodayDate(todayDate)]
+            [req.user.ID, formatDate(todayDate)]
         );
         if (Number(userActiveResult[0][0].activeCount) >= MAX_ACTIVE_BOOKINGS) {
             await connection.rollback();
