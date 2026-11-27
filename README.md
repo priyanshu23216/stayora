@@ -101,7 +101,7 @@ Stayora implements **Defense in Depth** across every layer of the request pipeli
 - **Session Store:** `express-session`, `connect-redis`, `ioredis`
 - **Security & Protection:** Custom Synchronizer-Token CSRF middleware (`middlewares/csrf.js`), `helmet`, `express-rate-limit`, atomic Redis Lua limiters, binary magic-byte image checks, `connect-flash`
 - **Storage & CDN:** `multer`, `cloudinary`
-- **Email Engine:** `nodemailer` (with HTML escaping &amp; header sanitization)
+- **Email Engine:** Resend HTTPS API (with HTML escaping &amp; header sanitization)
 - **Seeding & Mock Data:** `@faker-js/faker`
 
 ### Data Storage & In-Memory Layer
@@ -216,9 +216,10 @@ GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:8080/authenticate/google/callback
 
-# Nodemailer Service (Gmail App Password)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_16_digit_app_password
+# Resend Transactional Email API
+RESEND_API_KEY=re_your_resend_api_key
+EMAIL_FROM=Stayora <noreply@bookstayora.in>
+SUPPORT_EMAIL=support@bookstayora.in
 
 # Cloudinary Storage
 CLOUDINARY_CLOUD_NAME=your_cloud_name

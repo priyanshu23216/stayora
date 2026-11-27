@@ -318,7 +318,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
         // Step 10: Send confirmation email in background (never fails an already-committed booking)
         db.execute(`SELECT NAME, EMAIL FROM users WHERE ID = ?`, [room.HOST_ID])
             .then(([hostRows]) => {
-                let host = { NAME: "Stayora Host", EMAIL: "support@stayora.com" };
+                let host = { NAME: "Stayora Host", EMAIL: process.env.SUPPORT_EMAIL || "support@bookstayora.in" };
                 if (hostRows.length > 0) {
                     host = hostRows[0];
                 }

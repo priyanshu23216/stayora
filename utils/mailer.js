@@ -1,5 +1,8 @@
 import "dotenv/config";
-import nodemailer from "nodemailer";
+
+const RESEND_API_URL = "https://api.resend.com/emails";
+const DEFAULT_FROM = "Stayora <noreply@bookstayora.in>";
+const DEFAULT_SUPPORT_EMAIL = "support@bookstayora.in";
 
 function escapeHtml(value) {
     return String(value ?? "")
@@ -14,20 +17,53 @@ function sanitizeHeaderText(value) {
     return String(value ?? "").replace(/[\r\n]+/g, " ").trim();
 }
 
-// 1. Gmail transporter configuration
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+function getSupportEmail() {
+    return process.env.SUPPORT_EMAIL || DEFAULT_SUPPORT_EMAIL;
+}
+
+// 1. Resend HTTPS API sender
+async function sendEmail({ to, subject, html, replyTo }) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        throw new Error("RESEND_API_KEY is not configured in environment variables");
+    }
+
+    const payload = {
+        from: process.env.EMAIL_FROM || DEFAULT_FROM,
+        to: Array.isArray(to) ? to : [to],
+        subject: sanitizeHeaderText(subject),
+        html,
+    };
+
+    if (replyTo) {
+        payload.reply_to = replyTo;
+    }
+
+    const response = await fetch(RESEND_API_URL, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(
+            `Resend API error (${response.status}): ${data.message || response.statusText}`
+        );
+    }
+
+    return data;
+}
 
 // 2. OTP Verification Email
 export const sendOtpEmail = async (toEmail, otp) => {
     const safeOtp = escapeHtml(otp);
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    return await sendEmail({
         to: toEmail,
         subject: "Stayora - Your Verification Code",
         html: `
@@ -76,6 +112,9 @@ export const sendOtpEmail = async (toEmail, otp) => {
                             <!-- Footer -->
                             <tr>
                                 <td style="background-color: #fafbfc; padding: 20px; text-align: center; border-top: 1px solid #f0f2f5;">
+                                    <p style="margin: 0 0 8px; font-size: 12px; line-height: 18px; color: #6b7280;">
+                                        This is an automated email, please do not reply. For any queries or questions, contact us at <a href="mailto:${escapeHtml(getSupportEmail())}" style="color: #0071e3; text-decoration: none;">${escapeHtml(getSupportEmail())}</a>.
+                                    </p>
                                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
                                         © ${new Date().getFullYear()} Stayora Inc. All rights reserved.
                                     </p>
@@ -88,9 +127,7 @@ export const sendOtpEmail = async (toEmail, otp) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 // 3. Booking Confirmation Email
@@ -106,9 +143,11 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
         hostName: escapeHtml(booking.hostName),
         hostEmail: escapeHtml(booking.hostEmail),
     };
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    const supportEmail = getSupportEmail();
+    const safeSupportEmail = escapeHtml(supportEmail);
+    return await sendEmail({
         to: toEmail,
+        replyTo: supportEmail,
         subject: `Booking Confirmed: ${sanitizeHeaderText(booking.hotelName)} (${sanitizeHeaderText(booking.bookingId)})`,
         html: `
         <!DOCTYPE html>
@@ -212,7 +251,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Need to make changes? Reach out to our support team at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
+                                        Need to make changes or have questions? Please do not reply to this email. Reach out to our support team at <a href="mailto:${safeSupportEmail}" style="color: #0071e3; text-decoration: none;">${safeSupportEmail}</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -232,9 +271,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 export const sendBookingCancellation = async (toEmail, booking) => {
@@ -249,9 +286,11 @@ export const sendBookingCancellation = async (toEmail, booking) => {
         refundAmount: typeof booking.refundAmount === "number" ? booking.refundAmount : null,
         refundPercent: typeof booking.refundPercent === "number" ? booking.refundPercent : 0,
     };
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    const supportEmail = getSupportEmail();
+    const safeSupportEmail = escapeHtml(supportEmail);
+    return await sendEmail({
         to: toEmail,
+        replyTo: supportEmail,
         subject: `Booking Cancelled: ${sanitizeHeaderText(booking.hotelName)} (${sanitizeHeaderText(booking.bookingId)})`,
         html: 
 
@@ -348,7 +387,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        If this cancellation was not made by you or if you need assistance, please contact us immediately at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
+                                        If this cancellation was not made by you or if you have any questions, please do not reply to this email. Contact us at <a href="mailto:${safeSupportEmail}" style="color: #0071e3; text-decoration: none;">${safeSupportEmail}</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -366,8 +405,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
             </table>
         </body>
         </html>`,
-    };
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 
@@ -416,8 +454,7 @@ export const resetPassEmail = async (toEmail, message) => {
             </div>
         `;
 
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    return await sendEmail({
         to: toEmail,
         subject: subject,
         html: `
@@ -453,6 +490,9 @@ export const resetPassEmail = async (toEmail, message) => {
                             <!-- Footer -->
                             <tr>
                                 <td style="background-color: #fafbfc; padding: 20px; text-align: center; border-top: 1px solid #f0f2f5;">
+                                    <p style="margin: 0 0 8px; font-size: 12px; line-height: 18px; color: #6b7280;">
+                                        This is an automated email, please do not reply. For any queries or questions, contact us at <a href="mailto:${escapeHtml(getSupportEmail())}" style="color: #0071e3; text-decoration: none;">${escapeHtml(getSupportEmail())}</a>.
+                                    </p>
                                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
                                         © ${new Date().getFullYear()} Stayora Inc. All rights reserved.
                                     </p>
@@ -465,13 +505,10 @@ export const resetPassEmail = async (toEmail, message) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 export const passChangeAlertEmail = async (toEmail) => {
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    return await sendEmail({
         to: toEmail,
         subject: "Stayora - Security Alert!,Your Password was recently changed",
         html: `
@@ -518,6 +555,9 @@ export const passChangeAlertEmail = async (toEmail) => {
                             </tr>
                             <tr>
                                 <td align="center" style="padding: 18px 24px; background-color: #fafafa; border-top: 1px solid #eef0f2; border-radius: 0 0 12px 12px;">
+                                    <p style="margin: 0 0 8px; font-size: 12px; line-height: 18px; color: #6b7280;">
+                                        This is an automated email, please do not reply. For any queries or questions, contact us at <a href="mailto:${escapeHtml(getSupportEmail())}" style="color: #0071e3; text-decoration: none;">${escapeHtml(getSupportEmail())}</a>.
+                                    </p>
                                     <p style="margin: 0; font-size: 12px; line-height: 18px; color: #9ca3af;">
                                         &copy; ${new Date().getFullYear()} Stayora. All rights reserved.
                                     </p>
@@ -530,9 +570,7 @@ export const passChangeAlertEmail = async (toEmail) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 // 5. Property Approved Email (sent to host when admin approves a listing)
@@ -545,9 +583,11 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
         state: escapeHtml(property.state),
         listingUrl: escapeHtml(listingUrl),
     };
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    const supportEmail = getSupportEmail();
+    const safeSupportEmail = escapeHtml(supportEmail);
+    return await sendEmail({
         to: toEmail,
+        replyTo: supportEmail,
         subject: `Listing Approved: ${sanitizeHeaderText(property.title)} is now live on Stayora`,
         html: `
         <!DOCTYPE html>
@@ -621,7 +661,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Have questions about hosting? Contact us at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
+                                        Have questions about hosting? Please do not reply to this email. Contact us at <a href="mailto:${safeSupportEmail}" style="color: #0071e3; text-decoration: none;">${safeSupportEmail}</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -641,9 +681,7 @@ export const sendPropertyApprovedEmail = async (toEmail, property) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 // 6. Property Rejected / Delisted Email (sent to host when admin rejects or delists a listing)
@@ -657,9 +695,11 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
         rejectionReason: escapeHtml(property.rejectionReason),
         editUrl: escapeHtml(editUrl),
     };
-    const mailOptions = {
-        from: `"Stayora" <${process.env.EMAIL_USER}>`,
+    const supportEmail = getSupportEmail();
+    const safeSupportEmail = escapeHtml(supportEmail);
+    return await sendEmail({
         to: toEmail,
+        replyTo: supportEmail,
         subject: `Listing Update: ${sanitizeHeaderText(property.title)} was not approved`,
         html: `
         <!DOCTYPE html>
@@ -744,7 +784,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
                             <tr>
                                 <td style="padding: 0 35px 30px;">
                                     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center;">
-                                        Need help resolving this? Reach out to our team at <a href="mailto:support@stayora.com" style="color: #0071e3; text-decoration: none;">support@stayora.com</a>.
+                                        Need help resolving this or have questions? Please do not reply to this email. Reach out to our team at <a href="mailto:${safeSupportEmail}" style="color: #0071e3; text-decoration: none;">${safeSupportEmail}</a>.
                                     </p>
                                 </td>
                             </tr>
@@ -764,9 +804,7 @@ export const sendPropertyRejectedEmail = async (toEmail, property) => {
         </body>
         </html>
         `,
-    };
-
-    return await transporter.sendMail(mailOptions);
+    });
 };
 
 
