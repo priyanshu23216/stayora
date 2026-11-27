@@ -261,10 +261,17 @@ export const bookingSchema = z.object({
         .string()
         .trim()
         .refine(isStrictIsoDate, "Please enter a valid check-out date (YYYY-MM-DD)."),
-    guests: z
-        .union([z.string().trim().regex(/^\d+$/, "Guests must be a valid whole number."), z.number().int()])
-        .transform((v) => Number(v))
-        .refine((n) => Number.isInteger(n) && n >= 1 && n <= 100, "Guests must be between 1 and 100."),
+    roomsCount: z.coerce
+        .number({ message: "Please select a valid number of rooms." })
+        .int("Rooms must be a whole number.")
+        .min(1, "At least 1 room is required.")
+        .max(200, "Invalid number of rooms.")
+        .default(1),
+    guests: z.coerce
+        .number({ message: "Guests must be a valid number." })
+        .int("Guests must be a whole number.")
+        .min(1, "At least 1 guest is required.")
+        .max(500, "Guests cannot exceed 500."),
 });
 
 // Admin rejection reason validation

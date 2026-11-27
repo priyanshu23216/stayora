@@ -143,8 +143,9 @@ function computePeakFutureOccupancy(bookings) {
     if (bookings.length === 0) return 0;
     const events = [];
     for (const b of bookings) {
-        events.push({ date: b.CHECK_IN_DATE, delta: 1 });
-        events.push({ date: b.CHECK_OUT_DATE, delta: -1 });
+        const count = Number(b.rooms_count || 1);
+        events.push({ date: b.CHECK_IN_DATE, delta: count });
+        events.push({ date: b.CHECK_OUT_DATE, delta: -count });
     }
     // Check-outs happen before check-ins on the same day (-1 before +1)
     events.sort((a, b) => (a.date === b.date ? a.delta - b.delta : a.date < b.date ? -1 : 1));
@@ -351,6 +352,7 @@ hostRouter.get("/bookings", async (req, res, next) => {
                     bookings.CHECK_IN_DATE,
                     bookings.CHECK_OUT_DATE,
                     bookings.GUESTS,
+                    bookings.rooms_count,
                     bookings.TOTAL_AMOUNT,
                     bookings.STATUS,
                     bookings.CREATED_AT,
@@ -404,6 +406,7 @@ hostRouter.get("/bookings", async (req, res, next) => {
                 ID: item.ID,
                 ROOM_ID: item.ROOM_ID,
                 GUESTS: item.GUESTS,
+                rooms_count: Number(item.rooms_count || 1),
                 STATUS: item.STATUS,
                 ROOM_TYPE: item.ROOM_TYPE,
                 property_id: item.property_id,
@@ -1235,7 +1238,7 @@ hostRouter.put(
             }
 
             const [activeBookings] = await connection.execute(
-                `SELECT CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS
+                `SELECT CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS, rooms_count
                  FROM bookings
                  WHERE ROOM_ID = ?
                    AND STATUS IN ('pending', 'confirmed')
@@ -1256,7 +1259,8 @@ hostRouter.put(
 
             let maxBookedGuests = 0;
             for (const b of activeBookings) {
-                if (Number(b.GUESTS) > maxBookedGuests) maxBookedGuests = Number(b.GUESTS);
+                const perRoomGuests = Math.ceil(Number(b.GUESTS) / Number(b.rooms_count || 1));
+                if (perRoomGuests > maxBookedGuests) maxBookedGuests = perRoomGuests;
             }
             if (data.capacity < maxBookedGuests) {
                 await connection.rollback();

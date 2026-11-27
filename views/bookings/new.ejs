@@ -46,8 +46,18 @@
                 </div>
 
                 <div class="booking-field">
+                    <label for="roomsCount">Number of Rooms</label>
+                    <select id="roomsCount" name="roomsCount" required>
+                        <% for (let r = 1; r <= room.TOTAL_ROOMS; r++) { %>
+                            <option value="<%= r %>"><%= r %> <%= r === 1 ? "Room" : "Rooms" %></option>
+                        <% } %>
+                    </select>
+                    <span class="booking-field-hint">Up to <%= room.TOTAL_ROOMS %> <%= room.TOTAL_ROOMS === 1 ? "room" : "rooms" %> available in this category.</span>
+                </div>
+
+                <div class="booking-field">
                     <label for="guests">Number of Guests</label>
-                    <select id="guests" name="guests" required>
+                    <select id="guests" name="guests" data-capacity="<%= room.CAPACITY %>" required>
                         <% for (let g = 1; g <= room.CAPACITY; g++) { %>
                             <% if (g === 1) { %>
                                 <option value="<%= g %>">1 Guest</option>
@@ -56,7 +66,7 @@
                             <% } %>
                         <% } %>
                     </select>
-                    <span class="booking-field-hint">Maximum <%= room.CAPACITY %> guests allowed in this room.</span>
+                    <span class="booking-field-hint" id="guestsHint">Maximum <%= room.CAPACITY %> guests allowed for 1 room.</span>
                 </div>
 
                 <!-- Stay Policies Box -->
@@ -99,7 +109,7 @@
 
                 <div class="price-breakdown">
                     <div class="price-row">
-                        <span>&#8377;<%= room.PRICE_PER_NIGHT %> &times; <span id="nightsCount">0</span> night(s)</span>
+                        <span>&#8377;<%= room.PRICE_PER_NIGHT %> &times; <span id="nightsCount">0</span> night(s) &times; <span id="roomsCountText">1</span> room(s)</span>
                         <span id="subtotalText">&#8377;0</span>
                     </div>
                     <div class="price-row price-row-muted">

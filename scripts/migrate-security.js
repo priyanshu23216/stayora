@@ -27,6 +27,18 @@ async function migrate() {
             console.log("Column already exists: users.session_version");
         }
 
+        const [roomsCountCols] = await db.query(
+            "SHOW COLUMNS FROM bookings LIKE 'rooms_count'"
+        );
+        if (roomsCountCols.length === 0) {
+            await db.query(
+                "ALTER TABLE bookings ADD COLUMN rooms_count INT NOT NULL DEFAULT 1 AFTER GUESTS"
+            );
+            console.log("Added column: bookings.rooms_count");
+        } else {
+            console.log("Column already exists: bookings.rooms_count");
+        }
+
         console.log("Security schema migration complete.");
     } catch (err) {
         console.error("Migration failed:", err);

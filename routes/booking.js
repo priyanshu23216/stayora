@@ -36,7 +36,7 @@ export function getPeakNightlyOccupancy(overlappingBookings, checkInStr, nights)
 
         for (let booking of overlappingBookings) {
             if (booking.CHECK_IN_DATE <= currentNight && booking.CHECK_OUT_DATE > currentNight) {
-                roomsUsedThisNight++;
+                roomsUsedThisNight += Number(booking.rooms_count || 1);
             }
         }
 
@@ -160,6 +160,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
 
     const checkIn = validation.data.checkIn;
     const checkOut = validation.data.checkOut;
+    const roomsCount = validation.data.roomsCount;
     const guests = validation.data.guests;
 
     // Step 2: Check date logic (no past dates, checkOut > checkIn, max 60 nights, max 365 days advance)
@@ -245,9 +246,10 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
             return res.redirect(`/bookings/new/${roomId}`);
         }
 
-        if (guests > room.CAPACITY) {
+        const maxGuests = Number(room.CAPACITY) * roomsCount;
+        if (guests > maxGuests) {
             await connection.rollback();
-            req.flash("error", `Maximum ${room.CAPACITY} guests are allowed in this room.`);
+            req.flash("error", `Maximum ${maxGuests} guests are allowed for ${roomsCount} room(s).`);
             return res.redirect(`/bookings/new/${roomId}`);
         }
 
@@ -286,7 +288,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
 
         // Step 7: Check peak occupancy across every single night in [checkIn, checkOut)
         const overlapResult = await connection.execute(
-            `SELECT CHECK_IN_DATE, CHECK_OUT_DATE
+            `SELECT CHECK_IN_DATE, CHECK_OUT_DATE, rooms_count
              FROM bookings
              WHERE ROOM_ID = ?
                AND STATUS IN ('pending', 'confirmed')
@@ -296,22 +298,27 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
         );
 
         const peakOccupied = getPeakNightlyOccupancy(overlapResult[0], checkIn, nights);
-        if (peakOccupied >= Number(room.TOTAL_ROOMS)) {
+        const availableRooms = Number(room.TOTAL_ROOMS) - peakOccupied;
+        if (roomsCount > availableRooms) {
             await connection.rollback();
-            req.flash("error", "Sorry, this room is sold out for one or more of the selected dates. Please try different dates.");
+            const message =
+                availableRooms <= 0
+                    ? "Sorry, this room is sold out for one or more of the selected dates. Please try different dates."
+                    : `Only ${availableRooms} room(s) available for the selected dates. Please select fewer rooms or try different dates.`;
+            req.flash("error", message);
             return res.redirect(`/bookings/new/${roomId}`);
         }
 
         // Step 8: Calculate price on backend & save a snapshot of the property's cancellation policy
-        const totalAmount = Number((nights * Number(room.PRICE_PER_NIGHT)).toFixed(2));
+        const totalAmount = Number((nights * Number(room.PRICE_PER_NIGHT) * roomsCount).toFixed(2));
         const bookingId = uuidv4();
         const policySnapshot =
             room.cancellation_policy || "Flexible — Free cancellation up to 24 hours before check-in";
 
         await connection.execute(
-            `INSERT INTO bookings (ID, USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS, TOTAL_AMOUNT, STATUS, cancellation_policy)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [bookingId, req.user.ID, roomId, checkIn, checkOut, guests, totalAmount, "confirmed", policySnapshot]
+            `INSERT INTO bookings (ID, USER_ID, ROOM_ID, CHECK_IN_DATE, CHECK_OUT_DATE, GUESTS, rooms_count, TOTAL_AMOUNT, STATUS, cancellation_policy)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [bookingId, req.user.ID, roomId, checkIn, checkOut, guests, roomsCount, totalAmount, "confirmed", policySnapshot]
         );
 
         // Step 9: Commit transaction and release row lock
@@ -328,6 +335,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
                     bookingId: bookingId,
                     hotelName: room.property_title,
                     roomType: room.ROOM_TYPE,
+                    roomsCount: roomsCount,
                     checkIn: checkIn,
                     checkOut: checkOut,
                     guests: guests,
@@ -342,7 +350,7 @@ bookingRouter.post("/new/:roomId", bookingRateLimiter, async (req, res, next) =>
 
         req.flash(
             "success",
-            `Booking confirmed for ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`
+            `Booking confirmed for ${roomsCount} room(s), ${nights} night(s)! Total amount: ₹${totalAmount}. A confirmation email has been sent to ${req.user.EMAIL}.`
         );
         return res.redirect("/guest/dashboard");
     } catch (err) {

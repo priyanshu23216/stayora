@@ -78,13 +78,13 @@ const resetPassIPlimiter = makeIpLimiter(
 // Login limiter per (IP + email) so a remote attacker cannot lock out another user's account
 async function loginEmailLimiter(req, res, next) {
     try {
-        const result = loginCheck.safeParse(req.body);
-        if (!result.success) {
+        const validation = loginCheck.safeParse(req.body);
+        if (!validation.success) {
             req.flash("error", "Invalid email or password");
             return res.redirect("/authenticate/login");
         }
 
-        const email = result.data.email;
+        const email = validation.data.email;
         const redisKey = `login:attempts:${req.ip}:${email}`;
         const attempts = await atomicIncrWithExpiry(redisKey, 900);
 
@@ -104,13 +104,13 @@ async function loginEmailLimiter(req, res, next) {
 // Forgot-password limiter per email (max 5 reset emails per 15 min)
 async function forgotPassEmailLimiter(req, res, next) {
     try {
-        const result = emailValidator.safeParse(req.body);
-        if (!result.success) {
-            req.flash("error", result.error.issues[0].message);
+        const validation = emailValidator.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
             return res.redirect("/authenticate/forgot-password");
         }
 
-        const email = result.data.email;
+        const email = validation.data.email;
         const redisKey = `forgotPass:attempts:${email}`;
         const attempts = await atomicIncrWithExpiry(redisKey, 900);
 
@@ -174,15 +174,15 @@ router.get("/signup", (req, res) => {
 router.post("/signup/add", signupLimiter, async (req, res, next) => {
     try {
         // Step 1: Validate name, email, and strong password using Zod
-        const result = signupSchema.safeParse(req.body);
-        if (!result.success) {
-            req.flash("error", result.error.issues[0].message);
+        const validation = signupSchema.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
             return res.redirect("/authenticate/signup");
         }
 
-        const name = result.data.name;
-        const email = result.data.email;
-        const password = result.data.password;
+        const name = validation.data.name;
+        const email = validation.data.email;
+        const password = validation.data.password;
 
         // Step 2: Check if email is already registered
         const [existingUsers] = await db.execute(
@@ -219,9 +219,9 @@ router.post("/signup/add", signupLimiter, async (req, res, next) => {
 router.post("/signup/verify-otp", otpVerifyIPlimiter, async (req, res, next) => {
     try {
         // Step 1: Validate email and 6-digit OTP format
-        const result = otpValidator.safeParse(req.body);
-        if (!result.success) {
-            const firstIssue = result.error.issues[0];
+        const validation = otpValidator.safeParse(req.body);
+        if (!validation.success) {
+            const firstIssue = validation.error.issues[0];
             let safeEmail = "";
             if (req.body && typeof req.body.email === "string") {
                 safeEmail = req.body.email.toLowerCase().trim();
@@ -239,8 +239,8 @@ router.post("/signup/verify-otp", otpVerifyIPlimiter, async (req, res, next) => 
             return res.redirect("/authenticate/signup");
         }
 
-        const signupEmail = result.data.email;
-        const otp = result.data.otp;
+        const signupEmail = validation.data.email;
+        const otp = validation.data.otp;
 
         // Step 2: Check pending signup session in Redis
         const pendingSignup = await redis.get(`signup:pending:${signupEmail}`);
@@ -320,13 +320,13 @@ router.post("/signup/verify-otp", otpVerifyIPlimiter, async (req, res, next) => 
 
 router.post("/signup/resend-otp", otpResendIPlimiter, async (req, res, next) => {
     try {
-        const result = emailValidator.safeParse(req.body);
-        if (!result.success) {
+        const validation = emailValidator.safeParse(req.body);
+        if (!validation.success) {
             req.flash("error", "Invalid email. Please sign up again.");
             return res.redirect("/authenticate/signup");
         }
 
-        const email = result.data.email;
+        const email = validation.data.email;
         const pendingSignup = await redis.get(`signup:pending:${email}`);
         if (!pendingSignup) {
             req.flash("error", "Your session has expired. Please sign up again.");
@@ -391,13 +391,13 @@ router.get("/forgot-password", (req, res) => {
 
 router.post("/forgot-password/submit", forgotPassIPlimiter, forgotPassEmailLimiter, async (req, res, next) => {
     try {
-        const result = emailValidator.safeParse(req.body);
-        if (!result.success) {
-            req.flash("error", result.error.issues[0].message);
+        const validation = emailValidator.safeParse(req.body);
+        if (!validation.success) {
+            req.flash("error", validation.error.issues[0].message);
             return res.redirect("/authenticate/forgot-password");
         }
 
-        const email = result.data.email;
+        const email = validation.data.email;
         const [rows] = await db.execute("SELECT ID, PASSWORD FROM users WHERE EMAIL = ?", [email]);
         const user = rows[0];
 
@@ -478,16 +478,16 @@ router.post("/reset-password/:token", resetPassIPlimiter, async (req, res, next)
             return res.redirect("/authenticate/forgot-password");
         }
 
-        const result = resetPassword.safeParse(req.body);
-        if (!result.success) {
+        const validation = resetPassword.safeParse(req.body);
+        if (!validation.success) {
             return res.render("auth/reset-password", {
                 title: "Reset Password",
                 token: token,
-                error: [result.error.issues[0].message],
+                error: [validation.error.issues[0].message],
             });
         }
 
-        const hashedPass = await bcrypt.hash(result.data.password, 12);
+        const hashedPass = await bcrypt.hash(validation.data.password, 12);
 
         // Save new password AND bump session_version (+1) to log out all old devices/sessions immediately
         await db.execute(

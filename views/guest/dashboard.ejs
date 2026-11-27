@@ -85,7 +85,8 @@
                                 <p class="guest-booking-location"><%= booking.property_city %>, <%= booking.property_state %></p>
                                 <h2 class="guest-booking-title"><%= booking.property_title %></h2>
                                 <p class="guest-booking-room">
-                                    <%= booking.ROOM_TYPE %> &middot; <%= booking.GUESTS %> <%= booking.GUESTS === 1 ? "Guest" : "Guests" %> &middot; <%= booking.nights %> <%= booking.nights === 1 ? "Night" : "Nights" %>
+                                    <% const bookedRooms = Number(booking.rooms_count || 1); %>
+                                    <%= booking.ROOM_TYPE %> &middot; <%= bookedRooms %> <%= bookedRooms === 1 ? "Room" : "Rooms" %> &middot; <%= booking.GUESTS %> <%= booking.GUESTS === 1 ? "Guest" : "Guests" %> &middot; <%= booking.nights %> <%= booking.nights === 1 ? "Night" : "Nights" %>
                                 </p>
                             </div>
                             <div class="guest-booking-price-box">

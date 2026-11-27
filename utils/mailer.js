@@ -136,6 +136,7 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
         bookingId: escapeHtml(booking.bookingId),
         hotelName: escapeHtml(booking.hotelName),
         roomType: escapeHtml(booking.roomType),
+        roomsCount: escapeHtml(booking.roomsCount || 1),
         checkIn: escapeHtml(booking.checkIn),
         checkOut: escapeHtml(booking.checkOut),
         guests: escapeHtml(booking.guests),
@@ -203,6 +204,10 @@ export const sendBookingConfirmation = async (toEmail, booking) => {
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Room Category</td>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomType}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Rooms</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomsCount}</td>
                                         </tr>
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-In</td>
@@ -279,6 +284,7 @@ export const sendBookingCancellation = async (toEmail, booking) => {
         bookingId: escapeHtml(booking.bookingId),
         hotelName: escapeHtml(booking.hotelName),
         roomType: booking.roomType ? escapeHtml(booking.roomType) : "",
+        roomsCount: escapeHtml(booking.roomsCount || 1),
         checkIn: escapeHtml(booking.checkIn),
         checkOut: escapeHtml(booking.checkOut),
         totalPrice: escapeHtml(booking.totalPrice),
@@ -360,6 +366,10 @@ export const sendBookingCancellation = async (toEmail, booking) => {
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Room Category</td>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomType}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Rooms</td>
+                                            <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: 600; color: #111827;" align="right">${safe.roomsCount}</td>
                                         </tr>` : ''}
                                         <tr>
                                             <td style="padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-size: 14px; color: #6b7280;">Check-In</td>
