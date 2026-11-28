@@ -1,52 +1,71 @@
-<section class="auth-page">
-    <div class="auth-card">
-        <div class="auth-header">
-            <h1>Verification</h1>
-        </div>
+<section class="otp-screen" aria-label="Email verification">
+    <!-- Minimal Apple-style Top Bar -->
+    <header class="otp-topbar">
+        <a href="/" class="otp-brand">Stayora<span>.</span></a>
+        <a href="/authenticate/signup" class="otp-back-link">&larr; Back to Sign up</a>
+    </header>
 
-        <div class="auth-body">
-            <h2 class="auth-title">Verify your email</h2>
-            <p class="auth-subtitle">
-                Enter the six-digit code sent to <strong><%= email %></strong>.
+    <!-- Centered Full-Screen Verification Card -->
+    <main class="otp-main">
+        <div class="otp-card">
+            <div class="otp-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+                    <path d="m4 7 8 6 8-6"></path>
+                </svg>
+            </div>
+
+            <h1 class="otp-title">Verify your email</h1>
+            <p class="otp-subtitle">
+                Enter the 6-digit verification code we sent to
+                <strong class="otp-email"><%= email %></strong>
             </p>
 
-            <form class="auth-form" action="/authenticate/signup/verify-otp" method="POST">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <input type="hidden" name="email" value="<%= email %>">
+            <% if (typeof refCode !== "undefined" && refCode) { %>
+                <div class="otp-ref-pill" title="Match this reference code with your email">
+                    <span class="otp-ref-label">Request Ref</span>
+                    <span class="otp-ref-value"><%= refCode %></span>
+                </div>
+            <% } %>
 
-                <div class="auth-field">
-                    <label for="otp">Verification code</label>
-                    <input
-                        id="otp"
-                        name="otp"
-                        type="text"
-                        class="auth-otp-input"
-                        inputmode="numeric"
-                        autocomplete="one-time-code"
-                        placeholder="000000"
-                        pattern="[0-9]{6}"
-                        minlength="6"
-                        maxlength="6"
-                        required
-                    >
+            <!-- Verify OTP Form -->
+            <form class="otp-form" id="otpVerifyForm" action="/authenticate/signup/verify-otp" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="signupId" value="<%= signupId %>">
+                <input type="hidden" id="otp" name="otp" value="">
+
+                <div class="otp-digits-group" role="group" aria-label="6-digit verification code">
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1" autofocus>
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 2">
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 3">
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 4">
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 5">
+                    <input type="text" class="otp-digit-box" inputmode="numeric" maxlength="1" autocomplete="off" aria-label="Digit 6">
                 </div>
 
-                <button type="submit" class="auth-submit">Verify email</button>
+                <p class="otp-inline-error" id="otpInlineError" aria-live="polite"></p>
+
+                <button type="submit" class="otp-submit-btn" id="otpSubmitBtn">Continue</button>
             </form>
 
-            <form class="auth-resend-form" action="/authenticate/signup/resend-otp" method="POST">
+            <!-- Resend OTP Form -->
+            <form class="otp-resend-form" action="/authenticate/signup/resend-otp" method="POST">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <input type="hidden" name="email" value="<%= email %>">
-                <p id="resend-countdown-message" class="auth-countdown">
-                    You can request another code in <span id="resend-countdown">60</span> seconds.
+                <input type="hidden" name="signupId" value="<%= signupId %>">
+                <p id="resend-countdown-message" class="otp-countdown">
+                    Didn&rsquo;t receive a code? Resend in <span id="resend-countdown">60</span>s
                 </p>
-                <button id="resend-otp-button" type="submit" class="auth-btn-secondary" hidden>
-                    Resend code
+                <button id="resend-otp-button" type="submit" class="otp-resend-btn" hidden>
+                    Resend verification code
                 </button>
             </form>
         </div>
-    </div>
+
+        <p class="otp-footnote">
+            Code expires in 10 minutes &middot; Protected by Stayora Security
+        </p>
+    </main>
 </section>
 
-<!-- External JS file for resend countdown to comply with CSP -->
+<!-- External JS file for 6-digit OTP input & resend countdown (CSP compliant) -->
 <script src="/js/resendOTP.js" defer></script>

@@ -1,110 +1,269 @@
 /* ==========================================================================
-   Stayora Listings Page (listings.css) — Mobile-First Full-Page Apple UI
+   Stayora Listings Page (listings.css) — Mobile-First Apple Store Luxe UI
    ========================================================================== */
 
-/* 1. Filter Bar (Mobile-first Base) */
+/* Soft Apple Canvas on Listings Page so pure-white cards pop cleanly */
+body:has(.listings-filters) {
+    background-color: #f5f5f7;
+}
+
+/* 1. Modern Apple Filter Capsule with Apple Blue Accents (Non-Sticky) */
 .listings-filters {
     width: 100%;
-    background-color: rgba(255, 255, 255, 0.86);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-    padding: 14px 16px;
+    margin: 0 0 34px;
+    padding: 0;
 }
 
 .filter-form {
+    position: relative;
     width: 100%;
-    max-width: 980px;
-    margin: 0 auto;
+    padding: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+    border: 1px solid rgba(0, 113, 227, 0.14);
+    border-radius: 26px;
+    box-shadow:
+        0 14px 36px rgba(0, 113, 227, 0.075),
+        0 2px 8px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: center;
+    align-items: center;
     gap: 12px;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.filter-form:hover {
+    border-color: rgba(0, 113, 227, 0.24);
+    box-shadow:
+        0 18px 44px rgba(0, 113, 227, 0.11),
+        0 3px 10px rgba(0, 0, 0, 0.035);
 }
 
 .filter-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    position: relative;
     flex: 1 1 100%;
 }
 
-.filter-group label {
+.filter-group.is-open {
+    z-index: 260;
+}
+
+.apple-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background-color: #f5f5f7;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 18px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.apple-select-trigger:hover {
+    background-color: rgba(0, 113, 227, 0.06);
+    border-color: rgba(0, 113, 227, 0.16);
+}
+
+.filter-group.is-open .apple-select-trigger,
+.apple-select-trigger:focus-visible {
+    background-color: #ffffff;
+    border-color: rgba(0, 113, 227, 0.55);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.12);
+    outline: none;
+}
+
+.filter-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(0, 113, 227, 0.13) 0%, rgba(41, 151, 255, 0.08) 100%);
+    color: #0071e3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.filter-icon svg {
+    width: 17px;
+    height: 17px;
+}
+
+.apple-select-trigger:hover .filter-icon,
+.filter-group.is-open .filter-icon {
+    background: linear-gradient(180deg, #1a86ff 0%, #0071e3 100%);
+    color: #ffffff;
+    transform: scale(1.03);
+}
+
+.filter-control {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.filter-label {
     font-family: var(--apple-font-text);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     color: #86868b;
-    padding-left: 4px;
+    transition: color 0.18s ease;
 }
 
-.filter-group select {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 100%;
+.apple-select-trigger:hover .filter-label,
+.filter-group.is-open .filter-label {
+    color: #0071e3;
+}
+
+.apple-select-value {
     font-family: var(--apple-font-text);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--apple-on-surface);
-    background-color: #f5f5f7;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    padding: 11px 40px 11px 14px;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231d1d1f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.18s ease;
-}
-
-/* Muted Apple placeholder style when required select hasn't been chosen yet */
-.filter-group select:invalid {
-    color: #86868b;
-    font-weight: 400;
-}
-
-.filter-group select option {
+    font-size: 14.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: #1d1d1f;
-    font-weight: 500;
-    background-color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.filter-group select option[disabled] {
-    color: #86868b;
+.apple-select-chevron {
+    width: 16px;
+    height: 16px;
+    color: #0071e3;
+    flex-shrink: 0;
+    transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.filter-group select:hover {
-    background-color: #ebebef;
-    border-color: rgba(0, 0, 0, 0.14);
+.filter-group.is-open .apple-select-chevron {
+    transform: rotate(180deg);
 }
 
-.filter-group select:focus {
-    outline: none;
-    background-color: var(--apple-neutral);
-    border-color: var(--apple-primary);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+/* Custom Apple macOS Frosted Glass Dropdown Menu */
+.apple-select-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    min-width: 220px;
+    padding: 7px;
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: saturate(200%) blur(24px);
+    -webkit-backdrop-filter: saturate(200%) blur(24px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    box-shadow:
+        0 22px 54px rgba(15, 23, 42, 0.14),
+        0 4px 14px rgba(15, 23, 42, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.97);
+    transform-origin: top center;
+    pointer-events: none;
+    transition:
+        opacity 0.2s ease,
+        transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0.2s ease;
+    z-index: 300;
 }
 
-.filter-btn {
-    flex: 1;
+.filter-group.is-open .apple-select-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.apple-select-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 13px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
     font-family: var(--apple-font-text);
     font-size: 14px;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: var(--apple-neutral);
-    background-color: var(--apple-primary);
+    color: #1d1d1f;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.apple-select-option:hover {
+    background-color: rgba(0, 113, 227, 0.08);
+    color: #0071e3;
+}
+
+.apple-select-option.is-selected {
+    background-color: rgba(0, 113, 227, 0.12);
+    color: #0071e3;
+    font-weight: 600;
+}
+
+.apple-option-check {
+    width: 15px;
+    height: 15px;
+    color: #0071e3;
+    opacity: 0;
+    transform: scale(0.75);
+    transition: opacity 0.15s ease, transform 0.18s ease;
+    flex-shrink: 0;
+}
+
+.apple-select-option.is-selected .apple-option-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 100%;
+    margin-top: 2px;
+}
+
+.filter-btn {
+    flex: 1;
+    min-height: 46px;
+    font-family: var(--apple-font-text);
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    background: linear-gradient(180deg, #1a86ff 0%, #0071e3 100%);
     border: none;
     border-radius: 9999px;
-    padding: 11px 24px;
+    padding: 11px 28px;
+    box-shadow:
+        0 6px 18px rgba(0, 113, 227, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
 }
 
 .filter-btn:hover {
-    background-color: var(--apple-secondary);
-    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.28);
+    background: linear-gradient(180deg, #2b92ff 0%, #0077ed 100%);
+    box-shadow:
+        0 10px 26px rgba(0, 113, 227, 0.36),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transform: translateY(-1px);
 }
 
 .filter-btn:active {
@@ -112,69 +271,113 @@
 }
 
 .filter-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
     font-family: var(--apple-font-text);
     font-size: 14px;
     font-weight: 500;
     color: #6e6e73;
+    background-color: #f5f5f7;
     text-decoration: none;
-    padding: 11px 16px;
+    padding: 11px 18px;
     border-radius: 9999px;
     transition: color 0.18s ease, background-color 0.18s ease;
 }
 
 .filter-reset:hover {
-    color: var(--apple-on-surface);
-    background-color: #f5f5f7;
+    color: #0071e3;
+    background-color: rgba(0, 113, 227, 0.09);
+}
+
+/* Editorial Listings Header */
+.listings-hero-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+
+.listings-eyebrow {
+    display: inline-block;
+    font-family: var(--apple-font-text);
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--apple-primary);
+    margin-bottom: 4px;
+}
+
+.listings-heading {
+    font-family: var(--apple-font-display);
+    font-size: clamp(26px, 4vw, 38px);
+    font-weight: 700;
+    letter-spacing: -0.032em;
+    line-height: 1.1;
+    color: #1d1d1f;
+    margin: 0;
+}
+
+.listings-subheading {
+    font-family: var(--apple-font-text);
+    font-size: 15px;
+    line-height: 1.45;
+    color: #6e6e73;
+    margin: 0;
 }
 
 /* 2. Listings Grid Section (Mobile-first 1 Column) */
 .listings-section {
     width: 100%;
-    max-width: 1800px;
-    margin: 24px auto 40px;
+    max-width: 1600px;
+    margin: 28px auto 48px;
     padding: 0 16px;
 }
 
 .listings-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 22px;
 }
 
-/* Individual Property Card */
+/* Individual Property Card (Shared cleanly with categories, host & admin dashboards) */
 .listing-card {
-    background-color: var(--apple-neutral);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 22px;
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.055);
+    border-radius: 24px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.035), 0 1px 2px rgba(0, 0, 0, 0.02);
     transition:
-        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-        box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.38s cubic-bezier(0.22, 1, 0.36, 1),
         border-color 0.25s ease;
 }
 
 .listing-card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+    transform: translateY(-6px);
+    border-color: rgba(0, 0, 0, 0.09);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.085), 0 4px 14px rgba(0, 0, 0, 0.035);
 }
 
 .listing-img-box {
+    display: block;
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 10;
     overflow: hidden;
-    background-color: var(--apple-surface);
+    background: linear-gradient(110deg, #ececef 30%, #f5f5f7 50%, #ececef 70%);
+    background-size: 200% 100%;
 }
 
 .listing-img-box::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.16) 0%, transparent 40%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.2) 0%, transparent 42%);
     opacity: 0;
     transition: opacity 0.35s ease;
     pointer-events: none;
@@ -189,11 +392,11 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .listing-card:hover .listing-img {
-    transform: scale(1.05);
+    transform: scale(1.055);
 }
 
 .listing-type {
@@ -202,15 +405,15 @@
     left: 14px;
     z-index: 2;
     font-family: var(--apple-font-text);
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: #ffffff;
-    background-color: rgba(29, 29, 31, 0.68);
-    backdrop-filter: saturate(180%) blur(12px);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    background-color: rgba(22, 22, 24, 0.64);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 5px 12px;
     border-radius: 9999px;
 }
@@ -228,7 +431,7 @@
     font-weight: 600;
     letter-spacing: -0.024em;
     color: var(--apple-on-surface);
-    margin: 0 0 6px;
+    margin: 0 0 5px;
     line-height: 1.28;
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -236,34 +439,102 @@
     overflow: hidden;
 }
 
+.listing-title-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+
+.listing-card:hover .listing-title-link {
+    color: var(--apple-primary);
+}
+
 .listing-location {
     font-family: var(--apple-font-text);
-    font-size: 14px;
+    font-size: 13.5px;
     color: #6e6e73;
     letter-spacing: -0.01em;
     margin: 0 0 16px;
 }
 
+/* Airy Apple Card Footer (Left Price + Right Soft Pill CTA) */
+.listing-card-footer {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(0, 0, 0, 0.055);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .listing-price {
     font-family: var(--apple-font-display);
-    font-size: 17.5px;
+    font-size: 18px;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.024em;
     font-variant-numeric: tabular-nums;
     color: var(--apple-on-surface);
     margin: auto 0 16px;
     padding-top: 14px;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.055);
 }
 
-.listing-price span {
+.listing-card-footer .listing-price {
+    margin: 0;
+    padding-top: 0;
+    border-top: none;
+    line-height: 1.2;
+}
+
+.listing-price-from {
+    display: block;
     font-family: var(--apple-font-text);
-    font-size: 13px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #86868b;
+    letter-spacing: 0.01em;
+    margin-bottom: 2px;
+}
+
+.listing-price span,
+.listing-price-unit {
+    font-family: var(--apple-font-text);
+    font-size: 12.5px;
     font-weight: 400;
     color: #86868b;
     letter-spacing: 0;
 }
 
+.listing-explore-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    font-family: var(--apple-font-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--apple-primary);
+    background-color: rgba(0, 113, 227, 0.09);
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 9999px;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
+}
+
+.listing-card:hover .listing-explore-pill,
+.listing-explore-pill:hover {
+    background-color: var(--apple-primary);
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(0, 113, 227, 0.26);
+}
+
+.listing-explore-pill:active {
+    transform: scale(0.96);
+}
+
+/* Shared button used on categories, host dashboard & admin dashboard */
 .view-more-btn {
     display: inline-flex;
     align-items: center;
@@ -273,17 +544,18 @@
     font-size: 14px;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: var(--apple-neutral);
-    background-color: var(--apple-tertiary);
+    color: var(--apple-primary);
+    background-color: rgba(0, 113, 227, 0.09);
     text-decoration: none;
-    padding: 11px 20px;
+    padding: 10.5px 20px;
     border-radius: 9999px;
-    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
 }
 
 .view-more-btn:hover {
     background-color: var(--apple-primary);
-    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.26);
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(0, 113, 227, 0.26);
 }
 
 .view-more-btn:active {
@@ -293,12 +565,13 @@
 /* Empty State */
 .no-listings {
     text-align: center;
-    padding: 56px 24px;
-    background-color: var(--apple-surface);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 24px;
-    max-width: 540px;
-    margin: 32px auto;
+    padding: 64px 28px;
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 28px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.04);
+    max-width: 520px;
+    margin: 36px auto;
 }
 
 .no-listings h2 {
@@ -320,13 +593,19 @@
 .no-listings .view-more-btn {
     width: auto;
     padding: 11px 28px;
+    background-color: var(--apple-primary);
+    color: #ffffff;
+}
+
+.no-listings .view-more-btn:hover {
+    background-color: #0077ed;
 }
 
 /* 3. Clean Minimal Pagination */
 .pagination {
     width: 100%;
-    max-width: 1800px;
-    margin: 0 auto 48px;
+    max-width: 1600px;
+    margin: 0 auto 56px;
     padding: 0 16px;
     display: flex;
     align-items: center;
@@ -341,19 +620,20 @@
     font-weight: 500;
     letter-spacing: -0.01em;
     color: var(--apple-on-surface);
-    background-color: #f5f5f7;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 9999px;
-    padding: 10px 20px;
+    padding: 10px 22px;
     text-decoration: none;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
 }
 
 .pagination-btn:hover {
     background-color: var(--apple-primary);
     border-color: var(--apple-primary);
     color: var(--apple-neutral);
-    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.24);
+    box-shadow: 0 6px 16px rgba(0, 113, 227, 0.24);
 }
 
 .pagination-btn:active {
@@ -362,18 +642,18 @@
 
 .pagination-info {
     font-family: var(--apple-font-text);
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     color: #6e6e73;
-    padding: 0 8px;
+    padding: 0 10px;
 }
 
 /* Tablet (min-width: 640px) */
 @media (min-width: 640px) {
     .listings-section {
         padding: 0 28px;
-        margin: 30px auto 48px;
+        margin: 34px auto 52px;
     }
 
     .listings-grid {
@@ -383,31 +663,56 @@
 
     .pagination {
         padding: 0 28px;
-        margin-bottom: 60px;
+        margin-bottom: 64px;
     }
 }
 
-/* Medium Desktop (min-width: 768px) — Sticky Frosted Filter Bar */
+/* Medium Desktop (min-width: 768px) — Modern Apple Segmented Pill (Non-Sticky) */
 @media (min-width: 768px) {
     .listings-filters {
-        position: sticky;
-        top: 56px;
-        z-index: 90;
-        padding: 16px clamp(28px, 3.5vw, 56px);
+        margin-bottom: 36px;
     }
 
     .filter-form {
-        gap: 16px;
+        flex-wrap: nowrap;
+        padding: 10px 12px;
+        border-radius: 9999px;
+        gap: 8px;
+        align-items: center;
     }
 
     .filter-group {
-        flex: 1 1 200px;
-        max-width: 280px;
+        flex: 1 1 0;
+    }
+
+    .apple-select-trigger {
+        padding: 8px 16px;
+        background-color: transparent;
+        border: 1px solid transparent;
+        border-radius: 9999px;
+    }
+
+    .apple-select-trigger:hover {
+        background-color: rgba(0, 113, 227, 0.06);
+        border-color: rgba(0, 113, 227, 0.12);
+    }
+
+    .filter-actions {
+        flex: 0 0 auto;
+        margin-top: 0;
+        padding-left: 6px;
     }
 
     .filter-btn {
         flex: 0 0 auto;
-        padding: 11px 28px;
+        padding: 12px 30px;
+    }
+
+    .listings-hero-head {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 22px;
     }
 
     .listing-info {
@@ -422,7 +727,7 @@
 /* Desktop (min-width: 1024px) — 3 Columns */
 @media (min-width: 1024px) {
     .listings-section {
-        margin: 36px auto 56px;
+        margin: 36px auto 60px;
         padding: 0 clamp(32px, 3.5vw, 56px);
     }
 
@@ -433,7 +738,7 @@
 
     .pagination {
         padding: 0 clamp(32px, 3.5vw, 56px);
-        margin-bottom: 72px;
+        margin-bottom: 76px;
     }
 }
 

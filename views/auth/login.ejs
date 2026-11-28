@@ -1,28 +1,46 @@
-<section class="auth-page">
-    <div class="auth-card">
-        <div class="auth-header">
-            <h1>Log in</h1>
-        </div>
+<section class="otp-screen" aria-label="Log in">
+    <!-- Minimal Apple-style Top Bar -->
+    <header class="otp-topbar">
+        <a href="/" class="otp-brand">Stayora<span>.</span></a>
+        <a href="/" class="otp-back-link">&larr; Back to Home</a>
+    </header>
 
-        <div class="auth-body">
-            <h2 class="auth-title">Welcome back to Stayora</h2>
+    <!-- Centered Full-Screen Login Card -->
+    <main class="otp-main">
+        <div class="otp-card">
+            <div class="otp-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21a8 8 0 0 0-16 0"></path>
+                    <circle cx="12" cy="8" r="4"></circle>
+                </svg>
+            </div>
 
-            <form class="auth-form" action="/authenticate/login/verify" method="POST">
+            <h1 class="otp-title">Welcome back</h1>
+            <p class="otp-subtitle">
+                Sign in to your Stayora account to manage bookings and stays.
+            </p>
+
+            <form class="auth-form otp-form-stack" action="/authenticate/login/verify" method="POST">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <div class="auth-field">
-                    <label for="email">Email</label>
+
+                <div class="otp-field">
+                    <label for="email">Email address</label>
                     <input
                         id="email"
                         name="email"
                         type="email"
                         placeholder="you@example.com"
                         autocomplete="email"
+                        autofocus
                         required
                     >
                 </div>
 
-                <div class="auth-field">
-                    <label for="password">Password</label>
+                <div class="otp-field">
+                    <div class="otp-label-row">
+                        <label for="password">Password</label>
+                        <a href="/authenticate/forgot-password" class="otp-forgot-link">Forgot password?</a>
+                    </div>
                     <input
                         id="password"
                         name="password"
@@ -33,16 +51,12 @@
                     >
                 </div>
 
-                <div class="auth-forgot">
-                    <a href="/authenticate/forgot-password">Forgot password?</a>
-                </div>
-
-                <button type="submit" class="auth-submit">Continue</button>
+                <button type="submit" class="otp-submit-btn">Continue</button>
             </form>
 
-            <div class="auth-divider">or</div>
+            <div class="otp-divider">or</div>
 
-            <a href="/authenticate/google" class="auth-google-btn">
+            <a href="/authenticate/google" class="otp-google-btn">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
                     <path fill="#34A853" d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.22 1.18-3.24 0-5.99-2.19-6.97-5.13H1.04v3.14C3.05 21.19 7.21 24 12 24Z"/>
@@ -52,9 +66,13 @@
                 Continue with Google
             </a>
 
-            <p class="auth-footer">
-                Don't have an account? <a href="/authenticate/signup">Sign up</a>
+            <p class="otp-card-footer">
+                Don&rsquo;t have an account? <a href="/authenticate/signup">Sign up</a>
             </p>
         </div>
-    </div>
+
+        <p class="otp-footnote">
+            Protected by Stayora Security
+        </p>
+    </main>
 </section>

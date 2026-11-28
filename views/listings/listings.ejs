@@ -1,51 +1,182 @@
-<!-- 1. Filter Bar -->
-<section class="listings-filters">
-    <form action="/listings" method="GET" class="filter-form">
-        <% if (locals.searchQuery) { %>
-            <input type="hidden" name="city" value="<%= locals.searchQuery %>">
-        <% } %>
-
-        <div class="filter-group">
-            <label for="type">Property Type</label>
-            <select name="type" id="type">
-                <option value="All Types" <%= (!locals.type || locals.type === 'All Types') ? 'selected' : '' %>>All Types</option>
-                <option value="hotel" <%= locals.type === 'hotel' ? 'selected' : '' %>>Hotel</option>
-                <option value="resort" <%= locals.type === 'resort' ? 'selected' : '' %>>Resort</option>
-                <option value="villa" <%= locals.type === 'villa' ? 'selected' : '' %>>Villa</option>
-                <option value="apartment" <%= locals.type === 'apartment' ? 'selected' : '' %>>Apartment</option>
-                <option value="guesthouse" <%= locals.type === 'guesthouse' ? 'selected' : '' %>>Guesthouse</option>
-                <option value="hostel" <%= locals.type === 'hostel' ? 'selected' : '' %>>Hostel</option>
-            </select>
-        </div>
-
-        <div class="filter-group">
-            <label for="price">Price</label>
-            <select name="price" id="price">
-                <option value="Any Price" <%= (!locals.price || locals.price === 'Any Price') ? 'selected' : '' %>>Any Price</option>
-                <option value="under_3000" <%= locals.price === 'under_3000' ? 'selected' : '' %>>Under ₹3,000</option>
-                <option value="3000_5000" <%= locals.price === '3000_5000' ? 'selected' : '' %>>₹3,000 - ₹5,000</option>
-                <option value="5000_10000" <%= locals.price === '5000_10000' ? 'selected' : '' %>>₹5,000 - ₹10,000</option>
-                <option value="10000_20000" <%= locals.price === '10000_20000' ? 'selected' : '' %>>₹10,000 - ₹20,000</option>
-                <option value="above_20000" <%= locals.price === 'above_20000' ? 'selected' : '' %>>₹20,000+</option>
-            </select>
-        </div>
-
-        <div class="filter-group">
-            <label for="sort">Sort By</label>
-            <select name="sort" id="sort">
-                <option value="Low to High" <%= (!locals.sort || locals.sort === 'Low to High') ? 'selected' : '' %>>Price: Low to High</option>
-                <option value="High to Low" <%= locals.sort === 'High to Low' ? 'selected' : '' %>>Price: High to Low</option>
-                <option value="Top Rated" <%= locals.sort === 'Top Rated' ? 'selected' : '' %>>Top Rated</option>
-            </select>
-        </div>
-
-        <button type="submit" class="filter-btn">Apply</button>
-        <a href="/listings" class="filter-reset">Reset</a>
-    </form>
-</section>
-
-<!-- 2. Properties Cards -->
+<!-- 1. Editorial Header + Clean Apple Filter Bar (Non-Sticky) -->
 <section class="listings-section">
+    <header class="listings-hero-head">
+        <div>
+            <span class="listings-eyebrow">Stayora Collection</span>
+            <h1 class="listings-heading">
+                <% if (locals.searchQuery) { %>
+                    Stays in <%= locals.searchQuery %>
+                <% } else { %>
+                    Curated Stays
+                <% } %>
+            </h1>
+        </div>
+        <p class="listings-subheading">
+            Handpicked, verified properties with transparent nightly pricing.
+        </p>
+    </header>
+
+    <%
+        const typeOptions = [
+            { value: "All Types", label: "All Types" },
+            { value: "hotel", label: "Hotel" },
+            { value: "resort", label: "Resort" },
+            { value: "villa", label: "Villa" },
+            { value: "apartment", label: "Apartment" },
+            { value: "guesthouse", label: "Guesthouse" },
+            { value: "hostel", label: "Hostel" },
+        ];
+        const priceOptions = [
+            { value: "Any Price", label: "Any Price" },
+            { value: "under_3000", label: "Under ₹3,000" },
+            { value: "3000_5000", label: "₹3,000 – ₹5,000" },
+            { value: "5000_10000", label: "₹5,000 – ₹10,000" },
+            { value: "10000_20000", label: "₹10,000 – ₹20,000" },
+            { value: "above_20000", label: "₹20,000+" },
+        ];
+        const sortOptions = [
+            { value: "Low to High", label: "Price: Low to High" },
+            { value: "High to Low", label: "Price: High to Low" },
+            { value: "Top Rated", label: "Top Rated" },
+        ];
+
+        const activeType = locals.type || "All Types";
+        const activePrice = locals.price || "Any Price";
+        const activeSort = locals.sort || "Low to High";
+
+        const activeTypeLabel = (typeOptions.find((o) => o.value === activeType) || typeOptions[0]).label;
+        const activePriceLabel = (priceOptions.find((o) => o.value === activePrice) || priceOptions[0]).label;
+        const activeSortLabel = (sortOptions.find((o) => o.value === activeSort) || sortOptions[0]).label;
+    %>
+
+    <div class="listings-filters" aria-label="Filter stays">
+        <form action="/listings" method="GET" class="filter-form">
+            <% if (locals.searchQuery) { %>
+                <input type="hidden" name="city" value="<%= locals.searchQuery %>">
+            <% } %>
+
+            <!-- 1. Property Type -->
+            <div class="filter-group" data-filter-select>
+                <input type="hidden" name="type" value="<%= activeType %>">
+                <button type="button" class="apple-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="filter-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 10.5 12 3l9 7.5"></path>
+                            <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+                            <path d="M9.5 21v-6h5v6"></path>
+                        </svg>
+                    </span>
+                    <span class="filter-control">
+                        <span class="filter-label">Property Type</span>
+                        <span class="apple-select-value"><%= activeTypeLabel %></span>
+                    </span>
+                    <svg class="apple-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="apple-select-menu" role="listbox" aria-label="Property Type">
+                    <% for (const opt of typeOptions) { %>
+                        <button
+                            type="button"
+                            class="apple-select-option <%= activeType === opt.value ? 'is-selected' : '' %>"
+                            role="option"
+                            aria-selected="<%= activeType === opt.value ? 'true' : 'false' %>"
+                            data-value="<%= opt.value %>"
+                            data-label="<%= opt.label %>"
+                        >
+                            <span><%= opt.label %></span>
+                            <svg class="apple-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- 2. Price Range -->
+            <div class="filter-group" data-filter-select>
+                <input type="hidden" name="price" value="<%= activePrice %>">
+                <button type="button" class="apple-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="filter-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 4h12"></path>
+                            <path d="M6 9h12"></path>
+                            <path d="m6 14 8.5 7"></path>
+                            <path d="M6 14h3a5 5 0 0 0 0-10"></path>
+                        </svg>
+                    </span>
+                    <span class="filter-control">
+                        <span class="filter-label">Price Range</span>
+                        <span class="apple-select-value"><%= activePriceLabel %></span>
+                    </span>
+                    <svg class="apple-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="apple-select-menu" role="listbox" aria-label="Price Range">
+                    <% for (const opt of priceOptions) { %>
+                        <button
+                            type="button"
+                            class="apple-select-option <%= activePrice === opt.value ? 'is-selected' : '' %>"
+                            role="option"
+                            aria-selected="<%= activePrice === opt.value ? 'true' : 'false' %>"
+                            data-value="<%= opt.value %>"
+                            data-label="<%= opt.label %>"
+                        >
+                            <span><%= opt.label %></span>
+                            <svg class="apple-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- 3. Sort By -->
+            <div class="filter-group" data-filter-select>
+                <input type="hidden" name="sort" value="<%= activeSort %>">
+                <button type="button" class="apple-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="filter-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="7" x2="20" y2="7"></line>
+                            <line x1="7" y1="12" x2="17" y2="12"></line>
+                            <line x1="10" y1="17" x2="14" y2="17"></line>
+                        </svg>
+                    </span>
+                    <span class="filter-control">
+                        <span class="filter-label">Sort By</span>
+                        <span class="apple-select-value"><%= activeSortLabel %></span>
+                    </span>
+                    <svg class="apple-select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="apple-select-menu" role="listbox" aria-label="Sort By">
+                    <% for (const opt of sortOptions) { %>
+                        <button
+                            type="button"
+                            class="apple-select-option <%= activeSort === opt.value ? 'is-selected' : '' %>"
+                            role="option"
+                            aria-selected="<%= activeSort === opt.value ? 'true' : 'false' %>"
+                            data-value="<%= opt.value %>"
+                            data-label="<%= opt.label %>"
+                        >
+                            <span><%= opt.label %></span>
+                            <svg class="apple-option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="filter-btn">Apply</button>
+                <a href="/listings" class="filter-reset">Reset</a>
+            </div>
+        </form>
+    </div>
+
     <% if (listings.length === 0) { %>
         <div class="no-listings">
             <h2>No stays found</h2>
@@ -55,19 +186,28 @@
     <% } else { %>
         <div class="listings-grid">
             <% for (let item of listings) { %>
-                <div class="listing-card">
-                    <div class="listing-img-box">
-                        <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img">
+                <article class="listing-card">
+                    <a href="/listings/<%= item.ID %>" class="listing-img-box" aria-label="View <%= item.title %>">
+                        <img src="<%= item.image %>" alt="<%= item.title %>" class="listing-img" loading="lazy">
                         <span class="listing-type"><%= item.PROPERTY_TYPE %></span>
-                    </div>
+                    </a>
 
                     <div class="listing-info">
-                        <h3 class="listing-title"><%= item.title %></h3>
+                        <h2 class="listing-title">
+                            <a href="/listings/<%= item.ID %>" class="listing-title-link"><%= item.title %></a>
+                        </h2>
                         <p class="listing-location"><%= item.city %>, <%= item.state %></p>
-                        <p class="listing-price">From ₹<%= item.price_per_night %> <span>/ night</span></p>
-                        <a href="/listings/<%= item.ID %>" class="view-more-btn">View More</a>
+
+                        <div class="listing-card-footer">
+                            <p class="listing-price">
+                                <span class="listing-price-from">From</span>
+                                ₹<%= Number(item.price_per_night).toLocaleString("en-IN") %>
+                                <span class="listing-price-unit">/ night</span>
+                            </p>
+                            <a href="/listings/<%= item.ID %>" class="listing-explore-pill">Explore &rarr;</a>
+                        </div>
                     </div>
-                </div>
+                </article>
             <% } %>
         </div>
     <% } %>
@@ -96,3 +236,5 @@
         <a href="<%= buildPageUrl(currentPage + 1) %>" class="pagination-btn">Next &rarr;</a>
     <% } %>
 </nav>
+
+<script src="/js/listingsFilter.js" defer></script>

@@ -61,11 +61,14 @@ async function sendEmail({ to, subject, html, replyTo }) {
 }
 
 // 2. OTP Verification Email
-export const sendOtpEmail = async (toEmail, otp) => {
+export const sendOtpEmail = async (toEmail, otp, refCode = "") => {
     const safeOtp = escapeHtml(otp);
+    const safeRef = escapeHtml(refCode);
+    const subjectRef = refCode ? ` (Ref: ${sanitizeHeaderText(refCode)})` : "";
+
     return await sendEmail({
         to: toEmail,
-        subject: "Stayora - Your Verification Code",
+        subject: `Stayora - Your Verification Code${subjectRef}`,
         html: `
         <!DOCTYPE html>
         <html>
@@ -94,11 +97,17 @@ export const sendOtpEmail = async (toEmail, otp) => {
                                     </p>
 
                                     <!-- OTP Box -->
-                                    <div style="background: #f0f7ff; border: 1.5px dashed #0071e3; border-radius: 10px; padding: 18px 10px; margin: 0 auto 28px; max-width: 300px;">
+                                    <div style="background: #f0f7ff; border: 1.5px dashed #0071e3; border-radius: 10px; padding: 18px 10px; margin: 0 auto 16px; max-width: 300px;">
                                         <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #0071e3; display: inline-block;">
                                             ${safeOtp}
                                         </span>
                                     </div>
+
+                                    ${safeRef ? `
+                                    <p style="margin: 0 0 22px; font-size: 13px; color: #374151;">
+                                        Request Ref: <strong style="font-family: 'Courier New', Courier, monospace; letter-spacing: 1px;">${safeRef}</strong>
+                                    </p>
+                                    ` : ""}
 
                                     <p style="margin: 0 0 10px; font-size: 13px; color: #6b7280;">
                                         ⏳ This code is valid for <strong>10 minutes</strong>.

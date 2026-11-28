@@ -43,21 +43,29 @@ export const loginCheck = z.object({
     password: z.string().min(1, "Invalid password").max(72, "Invalid password"),
 });
 
-// OTP verification validation
+const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+// OTP verification validation (uses unique signupId per signup window)
 export const otpValidator = z.object({
-    email: z
+    signupId: z
         .string()
-        .toLowerCase()
         .trim()
-        .max(254, "Email is too long")
-        .email("Some error occurred, please sign up again"),
+        .regex(uuidRegex, "Your signup session is invalid. Please sign up again."),
     otp: z
         .string()
         .trim()
         .regex(/^[0-9]{6}$/, "OTP must be a 6-digit number"),
 });
 
-// Email-only validation (forgot password / resend OTP)
+// Resend OTP validation (uses unique signupId)
+export const signupIdValidator = z.object({
+    signupId: z
+        .string()
+        .trim()
+        .regex(uuidRegex, "Your signup session is invalid. Please sign up again."),
+});
+
+// Email-only validation (forgot password)
 export const emailValidator = z.object({
     email: z
         .string()
@@ -66,8 +74,6 @@ export const emailValidator = z.object({
         .max(254, "Email is too long")
         .email("Enter a valid email, example - user@domain.com"),
 });
-
-const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 // Strict allowed cancellation policies (prevents misleading free-text policies)
 export const ALLOWED_CANCELLATION_POLICIES = [

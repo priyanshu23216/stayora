@@ -34,20 +34,116 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-.site-header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background-color: #000000;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+::selection {
+    background-color: rgba(0, 113, 227, 0.16);
+    color: #1d1d1f;
 }
 
-/* Mobile-first Base */
-.navbar {
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--apple-primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+.liquid-glass-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Full-Width Dark Apple Liquid Glass Header (Static on inner pages, Sticky ONLY on Index page) */
+.site-header {
+    position: relative;
+    z-index: 1000;
     width: 100%;
-    max-width: 1120px;
+    padding: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(22, 24, 30, 0.92) 0%,
+        rgba(10, 11, 15, 0.94) 100%
+    );
+    backdrop-filter: blur(18px) saturate(190%);
+    -webkit-backdrop-filter: blur(18px) saturate(190%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 2px rgba(100, 210, 255, 0.08);
+    overflow: hidden;
+}
+
+/* Sticky + Translucent Liquid Glass ONLY on the Home / Index page */
+body:has(.hero) .site-header {
+    position: sticky;
+    top: 0;
+    margin-bottom: -62px;
+    background: linear-gradient(
+        180deg,
+        rgba(22, 24, 32, 0.56) 0%,
+        rgba(12, 14, 20, 0.44) 100%
+    );
+    backdrop-filter: blur(14px) saturate(210%);
+    -webkit-backdrop-filter: blur(14px) saturate(210%);
+    backdrop-filter: url(#liquid-glass-lens) blur(8px) saturate(215%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+        0 10px 32px rgba(0, 0, 0, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.24),
+        inset 0 -1px 2px rgba(100, 210, 255, 0.12);
+}
+
+/* Subtle top specular reflection across full-width dark glass bar */
+.site-header::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 46%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Interactive cursor / drag liquid caustic glow across full-width navbar */
+.site-header::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        210px circle at var(--gx, 50%) var(--gy, 50%),
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(100, 210, 255, 0.14) 38%,
+        transparent 72%
+    );
+    opacity: var(--g-opacity, 0);
+    transition: opacity 0.28s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Inner Navbar Container */
+.navbar {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1180px;
     margin: 0 auto;
-    padding: 12px 16px;
+    padding: 11px 16px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -79,9 +175,9 @@ body {
     width: 36px;
     height: 36px;
     padding: 0 7px;
-    border: 1px solid #3a3a3c;
-    border-radius: 8px;
-    background-color: #1d1d1f;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
     cursor: pointer;
 }
 
@@ -93,24 +189,25 @@ body {
     border-radius: 2px;
 }
 
-/* Search Bar (full-width on mobile) */
+/* Search Bar (Dark Glass Inset Pill) */
 .nav-search {
     order: 3;
     flex: 1 1 100%;
     max-width: 100%;
     display: flex;
     align-items: center;
-    background-color: #1d1d1f;
-    border: 1px solid #3a3a3c;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
     border-radius: 9999px;
     padding: 3px 3px 3px 14px;
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-search:focus-within {
-    background-color: #2c2c2e;
-    border-color: var(--apple-primary);
-    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25);
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(41, 151, 255, 0.75);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .nav-search-input {
@@ -128,7 +225,7 @@ body {
 }
 
 .nav-search-input::placeholder {
-    color: #86868b;
+    color: #a1a1a6;
 }
 
 .nav-search-input::-webkit-calendar-picker-indicator {
@@ -151,18 +248,20 @@ body {
     height: 30px;
     border: none;
     border-radius: 9999px;
-    background-color: var(--apple-primary);
+    background: linear-gradient(180deg, #1b88ff 0%, #0071e3 100%);
     color: var(--apple-neutral);
+    box-shadow: 0 3px 10px rgba(0, 113, 227, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.45);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color 0.18s ease;
+    transition: background 0.18s ease, transform 0.14s ease;
 }
 
 .nav-search-btn:hover {
-    background-color: var(--apple-secondary);
+    background: linear-gradient(180deg, #2c92ff 0%, #0077ed 100%);
+    transform: scale(1.04);
 }
 
 .nav-search-btn svg {
@@ -172,6 +271,7 @@ body {
 
 /* Right Menu (collapsed on mobile) */
 .nav-menu {
+    position: relative;
     order: 4;
     flex: 1 1 100%;
     display: none;
@@ -186,15 +286,47 @@ body {
     display: flex;
 }
 
+/* Sliding Liquid Glass Water-Drop Indicator Pill inside Desktop Nav Menu */
+.nav-liquid-pill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.09) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.28),
+        inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition:
+        transform 0.34s cubic-bezier(0.32, 1.28, 0.52, 1),
+        width 0.34s cubic-bezier(0.32, 1.28, 0.52, 1),
+        height 0.34s cubic-bezier(0.32, 1.28, 0.52, 1),
+        opacity 0.22s ease;
+}
+
+.nav-menu > *:not(.nav-liquid-pill) {
+    position: relative;
+    z-index: 1;
+}
+
 .nav-link {
     font-family: var(--apple-font-text);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
     line-height: 16px;
     color: #e5e5ea;
     text-decoration: none;
     text-align: center;
-    padding: 8px;
+    padding: 8px 13px;
+    border-radius: 9999px;
     white-space: nowrap;
     transition: color 0.18s ease;
 }
@@ -205,7 +337,7 @@ body {
 
 .nav-host-btn {
     font-family: var(--apple-font-text);
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
     line-height: 16px;
     color: #f5f5f7;
@@ -213,29 +345,30 @@ body {
     text-align: center;
     padding: 7px 14px;
     border-radius: 9999px;
-    border: 1px solid #3a3a3c;
-    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.08);
     white-space: nowrap;
-    transition: background-color 0.18s ease, border-color 0.18s ease;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .nav-host-btn:hover {
-    background-color: #1d1d1f;
-    border-color: #6e6e73;
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
 }
 
 .nav-dashboard-btn {
     font-family: var(--apple-font-text);
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
     line-height: 16px;
-    color: #2997ff;
+    color: #64d2ff;
     text-decoration: none;
     text-align: center;
     padding: 7px 14px;
     border-radius: 9999px;
-    border: 1px solid rgba(41, 151, 255, 0.35);
-    background-color: rgba(0, 113, 227, 0.14);
+    border: 1px solid rgba(100, 210, 255, 0.35);
+    background-color: rgba(0, 113, 227, 0.2);
     white-space: nowrap;
     transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
@@ -248,7 +381,7 @@ body {
 
 .nav-btn {
     font-family: var(--apple-font-text);
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 500;
     line-height: 16px;
     text-decoration: none;
@@ -256,36 +389,38 @@ body {
     padding: 8px 16px;
     border-radius: 9999px;
     white-space: nowrap;
-    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .nav-btn-primary {
-    background-color: var(--apple-primary);
+    background: linear-gradient(180deg, #1b88ff 0%, #0071e3 100%);
     color: var(--apple-neutral);
-    border: 1px solid var(--apple-primary);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .nav-btn-primary:hover {
-    background-color: var(--apple-secondary);
-    border-color: var(--apple-secondary);
+    background: linear-gradient(180deg, #2c92ff 0%, #0077ed 100%);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.38);
 }
 
 .nav-btn-outline {
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.08);
     color: #f5f5f7;
-    border: 1px solid #3a3a3c;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .nav-btn-outline:hover {
-    background-color: #1d1d1f;
-    border-color: #6e6e73;
+    background-color: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
 }
 
 /* Desktop (min-width: 901px) */
 @media (min-width: 901px) {
     .navbar {
         flex-wrap: nowrap;
-        padding: 12px 24px;
+        padding: 11px 24px;
         gap: 20px;
     }
 
@@ -317,7 +452,7 @@ body {
 
 .flash-stack {
     position: fixed;
-    top: 72px;
+    top: 84px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1500;

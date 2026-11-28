@@ -8,7 +8,7 @@ import passport from "../config/passport.js";
 import redis from "../config/redis.js";
 import { atomicIncrWithExpiry } from "../utils/redisHelpers.js";
 import { sendOtpEmail, resetPassEmail, passChangeAlertEmail } from "../utils/mailer.js";
-import { signupSchema, loginCheck, resetPassword, emailValidator, otpValidator } from "../utils/validator.js";
+import { signupSchema, loginCheck, resetPassword, emailValidator, otpValidator, signupIdValidator } from "../utils/validator.js";
 import { ensureCsrfToken } from "../middlewares/csrf.js";
 import { isLoggedIn } from "../middlewares/auth.js";
 import "dotenv/config";
@@ -16,10 +16,23 @@ import "dotenv/config";
 const router = express.Router();
 
 const FOUNDER_EMAIL = (process.env.FOUNDER_EMAIL || "").toLowerCase().trim();
-const OTP_EXPIRY_SECONDS = 600;       // 10 minutes
-const MAX_OTP_WRONG_TRIES = 5;        // Invalidate OTP after 5 wrong guesses
+const TEN_MINUTES = 600;
+const MAX_OTP_TRIES = 5;
 
-// Helper 1: Compare two SHA-256 hex strings safely (prevents timing attacks)
+// Helper 1: Normalize email for rate-limit keys only (blocks Gmail dot & +alias spam bypass)
+function normalizeEmailForRateLimit(email) {
+    let [name, domain] = email.toLowerCase().trim().split("@");
+    name = name.split("+")[0];
+
+    if (domain === "gmail.com" || domain === "googlemail.com") {
+        name = name.replaceAll(".", "");
+        domain = "gmail.com";
+    }
+
+    return `${name}@${domain}`;
+}
+
+// Helper 2: Compare two SHA-256 hex strings safely (prevents timing attacks)
 function isHashMatching(hashA, hashB) {
     if (typeof hashA !== "string" || typeof hashB !== "string") {
         return false;
@@ -175,43 +188,58 @@ router.get("/signup", (req, res) => {
 router.post("/signup/add", signupLimiter, async (req, res, next) => {
     try {
         // Step 1: Validate name, email, and strong password using Zod
-        const validation = signupSchema.safeParse(req.body);
-        if (!validation.success) {
-            req.flash("error", validation.error.issues[0].message);
+        const result = signupSchema.safeParse(req.body);
+        if (!result.success) {
+            req.flash("error", result.error.issues[0].message);
             return res.redirect("/authenticate/signup");
         }
 
-        const name = validation.data.name;
-        const email = validation.data.email;
-        const password = validation.data.password;
+        const { name, email, password } = result.data;
 
         // Step 2: Check if email is already registered
-        const [existingUsers] = await db.execute(
-            "SELECT ID FROM users WHERE EMAIL = ?",
-            [email]
-        );
-        if (existingUsers.length > 0) {
+        const [users] = await db.execute("SELECT ID FROM users WHERE EMAIL = ?", [email]);
+        if (users.length > 0) {
             req.flash("error", "This email is already registered. Please login!");
             return res.redirect("/authenticate/signup");
         }
 
-        // Step 3: Hash password & generate a random 6-digit OTP
-        const id = uuidv4();
-        const role = "guest";
-        const passwordHash = await bcrypt.hash(password, 12);
+        // Step 3: Per-email OTP spam cap (max 5 OTP emails per 15 min across all IPs & Gmail aliases)
+        const rateLimitEmail = normalizeEmailForRateLimit(email);
+        const sentCount = await atomicIncrWithExpiry(`otpEmail:${rateLimitEmail}`, 900);
+        if (sentCount > 5) {
+            req.flash("error", "Too many verification codes requested for this email. Please try again after 15 minutes.");
+            return res.redirect("/authenticate/signup");
+        }
+
+        // Step 4: Create unique signupId, 4-char Request Ref, password hash, and 6-digit OTP
+        const signupId = uuidv4();
+        const refCode = crypto.randomBytes(2).toString("hex").toUpperCase();
         const otp = crypto.randomInt(100000, 1000000).toString();
-        const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+        const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+        const passwordHash = await bcrypt.hash(password, 12);
 
-        // Step 4: Store hashed OTP and pending user data in Redis for 10 minutes
-        const pendingSignup = JSON.stringify({ id, name, email, passwordHash, role });
-        await redis.set(`otp:${email}`, hashedOTP, "EX", OTP_EXPIRY_SECONDS);
-        await redis.set(`signup:pending:${email}`, pendingSignup, "EX", OTP_EXPIRY_SECONDS);
-        await redis.del(`otp:fails:${email}`);
+        const pendingUser = {
+            id: uuidv4(),
+            name,
+            email,
+            passwordHash,
+            role: "guest",
+            refCode,
+        };
 
-        // Step 5: Send OTP email
-        await sendOtpEmail(email, otp);
+        // Step 5: Store OTP and pending signup in Redis under signupId (NOT email)
+        await redis.set(`otp:${signupId}`, otpHash, "EX", TEN_MINUTES);
+        await redis.set(`signup:${signupId}`, JSON.stringify(pendingUser), "EX", TEN_MINUTES);
 
-        return res.render("auth/enter-otp", { title: "Verify OTP", email: email });
+        // Step 6: Send OTP email with refCode
+        await sendOtpEmail(email, otp, refCode);
+
+        return res.render("auth/enter-otp", {
+            title: "Verify OTP",
+            email,
+            signupId,
+            refCode,
+        });
     } catch (err) {
         return next(err);
     }
@@ -219,99 +247,107 @@ router.post("/signup/add", signupLimiter, async (req, res, next) => {
 
 router.post("/signup/verify-otp", otpVerifyIPlimiter, async (req, res, next) => {
     try {
-        // Step 1: Validate email and 6-digit OTP format
-        const validation = otpValidator.safeParse(req.body);
-        if (!validation.success) {
-            const firstIssue = validation.error.issues[0];
-            let safeEmail = "";
-            if (req.body && typeof req.body.email === "string") {
-                safeEmail = req.body.email.toLowerCase().trim();
-            }
+        const { signupId, otp } = req.body;
 
-            if (firstIssue.path[0] === "otp" && emailValidator.safeParse({ email: safeEmail }).success) {
-                return res.render("auth/enter-otp", {
-                    title: "Verify OTP",
-                    email: safeEmail,
-                    error: [firstIssue.message],
-                });
-            }
-
-            req.flash("error", firstIssue.message);
+        // Step 1: Validate signupId from hidden form field
+        if (!signupIdValidator.safeParse({ signupId }).success) {
+            req.flash("error", "Invalid signup session. Please sign up again.");
             return res.redirect("/authenticate/signup");
         }
 
-        const signupEmail = validation.data.email;
-        const otp = validation.data.otp;
-
-        // Step 2: Check pending signup session in Redis
-        const pendingSignup = await redis.get(`signup:pending:${signupEmail}`);
-        if (!pendingSignup) {
+        // Step 2: Load pending signup from Redis using signupId
+        const rawUser = await redis.get(`signup:${signupId}`);
+        if (!rawUser) {
             req.flash("error", "Your signup session has expired. Please sign up again.");
             return res.redirect("/authenticate/signup");
         }
+        const user = JSON.parse(rawUser);
 
-        // Step 3: Check stored OTP hash in Redis
-        const storedOtpHash = await redis.get(`otp:${signupEmail}`);
-        if (!storedOtpHash) {
+        // Step 3: Validate 6-digit OTP format
+        const otpCheck = otpValidator.safeParse({ signupId, otp });
+        if (!otpCheck.success) {
             return res.render("auth/enter-otp", {
                 title: "Verify OTP",
-                email: signupEmail,
+                email: user.email,
+                signupId,
+                refCode: user.refCode,
+                error: [otpCheck.error.issues[0].message],
+            });
+        }
+
+        // Step 4: Load stored OTP hash from Redis using signupId
+        const savedHash = await redis.get(`otp:${signupId}`);
+        if (!savedHash) {
+            return res.render("auth/enter-otp", {
+                title: "Verify OTP",
+                email: user.email,
+                signupId,
+                refCode: user.refCode,
                 error: ["Your OTP has expired or been invalidated. Please request a new code."],
             });
         }
 
-        const enteredOtpHash = crypto.createHash("sha256").update(otp).digest("hex");
+        const enteredHash = crypto.createHash("sha256").update(otpCheck.data.otp).digest("hex");
 
-        // Step 4: If OTP is wrong, count failed guesses -> delete OTP after 5 wrong tries!
-        if (!isHashMatching(enteredOtpHash, storedOtpHash)) {
-            const failCount = await atomicIncrWithExpiry(`otp:fails:${signupEmail}`, OTP_EXPIRY_SECONDS);
+        // Step 5: Wrong OTP -> count failed tries and invalidate OTP after 5 wrong guesses
+        if (!isHashMatching(enteredHash, savedHash)) {
+            const tries = await atomicIncrWithExpiry(`otpFails:${signupId}`, TEN_MINUTES);
 
-            if (failCount >= MAX_OTP_WRONG_TRIES) {
-                await redis.del(`otp:${signupEmail}`);
+            if (tries >= MAX_OTP_TRIES) {
+                await redis.del(`otp:${signupId}`);
                 return res.render("auth/enter-otp", {
                     title: "Verify OTP",
-                    email: signupEmail,
+                    email: user.email,
+                    signupId,
+                    refCode: user.refCode,
                     error: ["Too many incorrect OTP attempts. Please request a new verification code."],
                 });
             }
 
-            const triesLeft = MAX_OTP_WRONG_TRIES - failCount;
             return res.render("auth/enter-otp", {
                 title: "Verify OTP",
-                email: signupEmail,
-                error: [`Incorrect OTP. ${triesLeft} attempt(s) remaining.`],
+                email: user.email,
+                signupId,
+                refCode: user.refCode,
+                error: [`Incorrect OTP. ${MAX_OTP_TRIES - tries} attempt(s) remaining.`],
             });
         }
 
-        // Step 5: OTP matched! Immediately delete all temporary Redis keys so OTP cannot be reused
+        // Step 6: OTP matched -> delete temporary Redis keys
+        const rateLimitEmail = normalizeEmailForRateLimit(user.email);
         await redis.del(
-            `otp:${signupEmail}`,
-            `signup:pending:${signupEmail}`,
-            `otp:fails:${signupEmail}`,
-            `otpResend:${signupEmail}`
+            `otp:${signupId}`,
+            `signup:${signupId}`,
+            `otpFails:${signupId}`,
+            `otpResend:${rateLimitEmail}`
         );
 
-        // Step 6: Save verified user in MySQL and log them in
-        const userData = JSON.parse(pendingSignup);
-        await db.execute(
-            "INSERT INTO users (ID, NAME, EMAIL, PASSWORD, ROLE, IS_VERIFIED, session_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [userData.id, userData.name, userData.email, userData.passwordHash, userData.role, 1, 1]
-        );
+        // Step 7: Save verified user in MySQL and log them in
+        try {
+            await db.execute(
+                "INSERT INTO users (ID, NAME, EMAIL, PASSWORD, ROLE, IS_VERIFIED, session_version) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [user.id, user.name, user.email, user.passwordHash, user.role, 1, 1]
+            );
+        } catch (dbErr) {
+            if (dbErr && dbErr.code === "ER_DUP_ENTRY") {
+                req.flash("error", "This email is already registered. Please login!");
+                return res.redirect("/authenticate/login");
+            }
+            throw dbErr;
+        }
 
         const loggedInUser = {
-            ID: userData.id,
-            NAME: userData.name,
-            EMAIL: userData.email,
-            ROLE: userData.role,
+            ID: user.id,
+            NAME: user.name,
+            EMAIL: user.email,
+            ROLE: user.role,
             session_version: 1,
         };
 
         req.login(loggedInUser, (err) => {
-            if (err) {
-                return next(err);
-            }
+            if (err) return next(err);
             ensureCsrfToken(req);
-            req.flash("success", `Welcome to Stayora, ${userData.name}!`);
+            req.flash("success", `Welcome to Stayora, ${user.name}!`);
             return res.redirect("/");
         });
     } catch (err) {
@@ -321,37 +357,51 @@ router.post("/signup/verify-otp", otpVerifyIPlimiter, async (req, res, next) => 
 
 router.post("/signup/resend-otp", otpResendIPlimiter, async (req, res, next) => {
     try {
-        const validation = emailValidator.safeParse(req.body);
-        if (!validation.success) {
-            req.flash("error", "Invalid email. Please sign up again.");
+        // Step 1: Validate signupId from hidden form field
+        const result = signupIdValidator.safeParse(req.body);
+        if (!result.success) {
+            req.flash("error", "Invalid session. Please sign up again.");
             return res.redirect("/authenticate/signup");
         }
 
-        const email = validation.data.email;
-        const pendingSignup = await redis.get(`signup:pending:${email}`);
-        if (!pendingSignup) {
+        const { signupId } = result.data;
+
+        // Step 2: Load pending signup (has email + same refCode)
+        const rawUser = await redis.get(`signup:${signupId}`);
+        if (!rawUser) {
             req.flash("error", "Your session has expired. Please sign up again.");
             return res.redirect("/authenticate/signup");
         }
+        const { email, refCode } = JSON.parse(rawUser);
+        const rateLimitEmail = normalizeEmailForRateLimit(email);
 
-        // Allow max 3 OTP resends per 15 minutes for this email
-        const resendCount = await atomicIncrWithExpiry(`otpResend:${email}`, 900);
-        if (resendCount > 3) {
+        // Step 3: Max 3 resends and max 5 total OTP emails per 15 minutes for this email
+        const resends = await atomicIncrWithExpiry(`otpResend:${rateLimitEmail}`, 900);
+        if (resends > 3) {
             req.flash("error", "You have exceeded the maximum number of OTP resend attempts. Please try again after 15 minutes.");
             return res.redirect("/authenticate/signup");
         }
 
-        // Generate fresh OTP & reset failed-guess counter
-        const otp = crypto.randomInt(100000, 1000000).toString();
-        const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
-        await redis.set(`otp:${email}`, hashedOTP, "EX", OTP_EXPIRY_SECONDS);
-        await redis.del(`otp:fails:${email}`);
+        const sentCount = await atomicIncrWithExpiry(`otpEmail:${rateLimitEmail}`, 900);
+        if (sentCount > 5) {
+            req.flash("error", "Too many verification codes requested for this email. Please try again after 15 minutes.");
+            return res.redirect("/authenticate/signup");
+        }
 
-        await sendOtpEmail(email, otp);
+        // Step 4: Generate fresh OTP under the SAME signupId and reset wrong tries
+        const otp = crypto.randomInt(100000, 1000000).toString();
+        const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+        await redis.set(`otp:${signupId}`, otpHash, "EX", TEN_MINUTES);
+        await redis.del(`otpFails:${signupId}`);
+
+        // Step 5: Send new OTP email with the SAME refCode
+        await sendOtpEmail(email, otp, refCode);
 
         return res.render("auth/enter-otp", {
             title: "Verify OTP",
-            email: email,
+            email,
+            signupId,
+            refCode,
             success: ["A new OTP has been sent to your email."],
         });
     } catch (err) {

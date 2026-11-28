@@ -1,16 +1,32 @@
-<section class="auth-page">
-    <div class="auth-card">
-        <div class="auth-header">
-            <h1>Sign up</h1>
-        </div>
+<section class="otp-screen" aria-label="Sign up">
+    <!-- Minimal Apple-style Top Bar -->
+    <header class="otp-topbar">
+        <a href="/" class="otp-brand">Stayora<span>.</span></a>
+        <a href="/" class="otp-back-link">&larr; Back to Home</a>
+    </header>
 
-        <div class="auth-body">
-            <h2 class="auth-title">Welcome to Stayora</h2>
+    <!-- Centered Full-Screen Signup Card -->
+    <main class="otp-main">
+        <div class="otp-card">
+            <div class="otp-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <line x1="19" y1="8" x2="19" y2="14"></line>
+                    <line x1="16" y1="11" x2="22" y2="11"></line>
+                </svg>
+            </div>
 
-            <form class="auth-form" action="/authenticate/signup/add" method="POST">
+            <h1 class="otp-title">Create your account</h1>
+            <p class="otp-subtitle">
+                Join Stayora to book curated stays or host your property.
+            </p>
+
+            <form class="auth-form otp-form-stack" action="/authenticate/signup/add" method="POST">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <div class="auth-field">
-                    <label for="name">Name</label>
+
+                <div class="otp-field">
+                    <label for="name">Full name</label>
                     <input
                         id="name"
                         name="name"
@@ -18,13 +34,14 @@
                         maxlength="255"
                         placeholder="Your full name"
                         autocomplete="name"
+                        autofocus
                         required
                     >
                     <span class="error-name auth-error"></span>
                 </div>
 
-                <div class="auth-field">
-                    <label for="email">Email</label>
+                <div class="otp-field">
+                    <label for="email">Email address</label>
                     <input
                         id="email"
                         name="email"
@@ -37,26 +54,26 @@
                     <span class="error-email auth-error"></span>
                 </div>
 
-                <div class="auth-field">
+                <div class="otp-field">
                     <label for="password">Password</label>
                     <input
                         id="password"
                         name="password"
                         type="password"
                         maxlength="255"
-                        placeholder="Enter a strong password"
+                        placeholder="Create a strong password"
                         autocomplete="new-password"
                         required
                     >
                     <span class="error-password auth-error"></span>
                 </div>
 
-                <button type="submit" class="auth-submit">Agree and continue</button>
+                <button type="submit" class="otp-submit-btn">Agree and continue</button>
             </form>
 
-            <div class="auth-divider">or</div>
+            <div class="otp-divider">or</div>
 
-            <a href="/authenticate/google" class="auth-google-btn">
+            <a href="/authenticate/google" class="otp-google-btn">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
                     <path fill="#34A853" d="M12 24c3.3 0 6.08-1.09 8.1-2.96l-3.88-3.05c-1.1.74-2.51 1.18-4.22 1.18-3.24 0-5.99-2.19-6.97-5.13H1.04v3.14C3.05 21.19 7.21 24 12 24Z"/>
@@ -66,11 +83,15 @@
                 Continue with Google
             </a>
 
-            <p class="auth-footer">
+            <p class="otp-card-footer">
                 Already have an account? <a href="/authenticate/login">Log in</a>
             </p>
         </div>
-    </div>
+
+        <p class="otp-footnote">
+            By continuing, you agree to Stayora&rsquo;s <a href="/terms">Terms</a> &amp; <a href="/privacy">Privacy Policy</a>
+        </p>
+    </main>
 </section>
 
 <!-- External JS file for client-side validation to comply with CSP -->

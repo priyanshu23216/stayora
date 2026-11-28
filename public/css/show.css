@@ -118,9 +118,10 @@ html {
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
-    border-radius: 20px;
+    border-radius: 24px;
     overflow: hidden;
-    margin-bottom: 36px;
+    margin-bottom: 40px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.06);
 }
 
 .gallery-main {
@@ -350,11 +351,20 @@ html {
 
 /* Right Sticky Booking Summary Card */
 .booking-summary-card {
-    background-color: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.09);
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+    background-color: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.075);
+    border-radius: 26px;
+    padding: 26px;
+    box-shadow: 0 20px 52px rgba(0, 0, 0, 0.065), 0 2px 8px rgba(0, 0, 0, 0.025);
+}
+
+@media (min-width: 992px) {
+    .booking-summary-card {
+        position: sticky;
+        top: 24px;
+    }
 }
 
 .summary-price-row {
@@ -374,9 +384,11 @@ html {
 }
 
 .summary-price {
-    font-size: 26px;
+    font-family: var(--apple-font-display);
+    font-size: 28px;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.028em;
+    font-variant-numeric: tabular-nums;
     color: #1d1d1f;
 }
 
@@ -474,19 +486,25 @@ html {
     display: block;
     width: 100%;
     text-align: center;
-    background-color: #1d1d1f;
+    background-color: var(--apple-primary);
     color: #ffffff;
-    font-size: 15px;
-    font-weight: 600;
-    padding: 14px 18px;
-    border-radius: 12px;
+    font-size: 15.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    padding: 14px 22px;
+    border-radius: 9999px;
     text-decoration: none;
-    transition: background-color 0.2s ease, transform 0.15s ease;
+    transition: background-color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
 }
 
 .summary-cta-btn:hover {
-    background-color: #000000;
+    background-color: #0077ed;
     transform: translateY(-1px);
+    box-shadow: 0 8px 22px rgba(0, 113, 227, 0.28);
+}
+
+.summary-cta-btn:active {
+    transform: scale(0.985);
 }
 
 .summary-note {
@@ -586,10 +604,12 @@ html {
 
 .room-price {
     display: block;
+    font-family: var(--apple-font-display);
     font-size: 22px;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
     color: #1d1d1f;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
 }
 
 .room-per-night {
@@ -626,20 +646,28 @@ html {
 }
 
 .room-book-btn {
-    display: inline-block;
-    background-color: #1d1d1f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--apple-primary);
     color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    padding: 11px 22px;
-    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    padding: 11px 24px;
+    border-radius: 9999px;
     text-decoration: none;
-    transition: background-color 0.2s ease, transform 0.15s ease;
+    transition: background-color 0.2s ease, transform 0.14s ease, box-shadow 0.2s ease;
 }
 
 .room-book-btn:hover {
-    background-color: #000000;
+    background-color: #0077ed;
     transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(0, 113, 227, 0.26);
+}
+
+.room-book-btn:active {
+    transform: scale(0.98);
 }
 
 .room-book-disabled {
