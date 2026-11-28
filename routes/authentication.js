@@ -10,6 +10,7 @@ import { atomicIncrWithExpiry } from "../utils/redisHelpers.js";
 import { sendOtpEmail, resetPassEmail, passChangeAlertEmail } from "../utils/mailer.js";
 import { signupSchema, loginCheck, resetPassword, emailValidator, otpValidator } from "../utils/validator.js";
 import { ensureCsrfToken } from "../middlewares/csrf.js";
+import { isLoggedIn } from "../middlewares/auth.js";
 import "dotenv/config";
 
 const router = express.Router();
@@ -512,7 +513,7 @@ router.post("/reset-password/:token", resetPassIPlimiter, async (req, res, next)
    5. LOGOUT ROUTE (POST + CSRF-protected)
    ========================================================================== */
 
-router.post("/logout", (req, res, next) => {
+router.post("/logout", isLoggedIn, (req, res, next) => {
     // Passport 0.7 automatically regenerates & clears the old Redis session
     req.logout((err) => {
         if (err) {

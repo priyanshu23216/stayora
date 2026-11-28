@@ -71,8 +71,8 @@ function isSameWebsiteRequest(req) {
         }
     }
 
-    // Step C: If neither header is sent, allow for now (CSRF token check will still verify logged-in users)
-    return true;
+    // Step C: Fail closed if neither Origin nor Referer header is sent
+    return false;
 }
 
 // Helper 3: Create a secret CSRF token inside Redis session ONLY when a user authenticates
