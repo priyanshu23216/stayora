@@ -1,61 +1,90 @@
-<div class="info-page">
+<div class="info-page apple-doc-page">
 
-    <header class="info-hero">
-        <span class="info-eyebrow">Legal</span>
-        <h1 class="info-title">Terms &amp; Conditions</h1>
+    <!-- Apple Legal Terms Hero -->
+    <header class="info-hero apple-doc-hero">
+        <div class="apple-hero-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="8" y1="13" x2="16" y2="13"></line>
+                <line x1="8" y1="17" x2="13" y2="17"></line>
+            </svg>
+        </div>
+        <span class="info-eyebrow">Stayora Legal &middot; Terms</span>
+        <h1 class="info-title">Terms of Use</h1>
         <p class="info-subtitle">
-            Please read these terms carefully before using Stayora to browse, book, or host properties.
+            Please read these terms carefully before using Stayora to browse curated stays, confirm bookings, or list properties as a host.
         </p>
-        <p class="legal-meta">Last updated: <%= new Date().getFullYear() %></p>
+        <div class="apple-doc-meta-pill">Updated <%= new Date().getFullYear() %> &middot; Stayora Platform Agreement</div>
     </header>
 
-    <div class="info-card-white">
-        <section class="legal-section">
-            <h2>1. Acceptance of Terms</h2>
-            <p>
-                By accessing or using Stayora, you agree to be bound by these Terms &amp; Conditions and our Privacy Policy. If you do not agree, please discontinue using the platform.
-            </p>
-        </section>
+    <!-- Apple 2-Column Legal Reader -->
+    <div class="apple-legal-layout">
+        <aside class="apple-legal-toc" aria-label="On this page">
+            <div class="apple-toc-card">
+                <span class="apple-toc-title">On this page</span>
+                <nav class="apple-toc-links">
+                    <a href="#terms-acceptance">1. Acceptance of Terms</a>
+                    <a href="#terms-accounts">2. User Accounts</a>
+                    <a href="#terms-bookings">3. Bookings &amp; Cancellations</a>
+                    <a href="#terms-hosts">4. Host Responsibilities</a>
+                    <a href="#terms-reviews">5. Reviews &amp; Conduct</a>
+                    <a href="#terms-contact">6. Contact Us</a>
+                </nav>
+                <div class="apple-toc-divider"></div>
+                <a href="/privacy" class="apple-toc-switch">Read Privacy Policy &rarr;</a>
+            </div>
+        </aside>
 
-        <section class="legal-section">
-            <h2>2. User Accounts</h2>
-            <ul>
-                <li>You must provide accurate and complete information when creating an account.</li>
-                <li>You are responsible for keeping your login credentials confidential.</li>
-                <li>Stayora reserves the right to suspend accounts involved in fraudulent or abusive activity.</li>
-            </ul>
-        </section>
+        <article class="info-card-white apple-legal-doc">
+            <section id="terms-acceptance" class="legal-section">
+                <h2>1. Acceptance of Terms</h2>
+                <p>
+                    By accessing or using Stayora, you agree to be bound by these Terms of Use and our
+                    <a class="apple-inline-link" href="/privacy">Privacy Policy</a>. If you do not agree, please discontinue using the platform.
+                </p>
+            </section>
 
-        <section class="legal-section">
-            <h2>3. Bookings &amp; Cancellations</h2>
-            <p>
-                Room prices, guest limits, check-in/check-out timings, and cancellation policies are displayed on each property page. By booking a room, you agree to follow the property's listed rules and cancellation policy.
-            </p>
-        </section>
+            <section id="terms-accounts" class="legal-section">
+                <h2>2. User Accounts</h2>
+                <ul>
+                    <li>You must provide accurate and complete information when creating an account.</li>
+                    <li>You are responsible for keeping your login credentials confidential.</li>
+                    <li>Stayora reserves the right to suspend accounts involved in fraudulent or abusive activity.</li>
+                </ul>
+            </section>
 
-        <section class="legal-section">
-            <h2>4. Host Responsibilities</h2>
-            <ul>
-                <li>Hosts must provide truthful descriptions, accurate pricing, and genuine photographs of their properties and rooms.</li>
-                <li>All new properties are subject to admin review and approval before going live on Stayora.</li>
-            </ul>
-        </section>
+            <section id="terms-bookings" class="legal-section">
+                <h2>3. Bookings &amp; Cancellations</h2>
+                <p>
+                    Room prices, guest limits, check-in/check-out timings, and cancellation policies are displayed transparently on each property page. By booking a room, you agree to follow the property&rsquo;s listed rules and cancellation policy.
+                </p>
+            </section>
 
-        <section class="legal-section">
-            <h2>5. Reviews &amp; Conduct</h2>
-            <p>
-                Guest reviews should be honest, respectful, and based on real stays. Spam, offensive language, or fake reviews may be removed without notice.
-            </p>
-        </section>
+            <section id="terms-hosts" class="legal-section">
+                <h2>4. Host Responsibilities</h2>
+                <ul>
+                    <li>Hosts must provide truthful descriptions, accurate pricing, and genuine photographs of their properties and rooms.</li>
+                    <li>All new properties and material edits are subject to admin review and approval before going live on Stayora.</li>
+                </ul>
+            </section>
 
-        <section class="legal-section">
-            <h2>6. Contact Us</h2>
-            <p>
-                If you have questions about these Terms &amp; Conditions, please contact us at
-                <a href="mailto:support@bookstayora.in">support@bookstayora.in</a> or
-                <a href="tel:+919212684600">+91 92126 84600</a>.
-            </p>
-        </section>
+            <section id="terms-reviews" class="legal-section">
+                <h2>5. Reviews &amp; Conduct</h2>
+                <p>
+                    Guest reviews should be honest, respectful, and based on real completed stays. Spam, offensive language, or fake reviews may be removed without notice.
+                </p>
+            </section>
+
+            <section id="terms-contact" class="legal-section">
+                <h2>6. Contact Us</h2>
+                <p>
+                    If you have questions about these Terms of Use, please contact us at
+                    <a class="apple-inline-link" href="mailto:support@bookstayora.in">support@bookstayora.in</a> or
+                    <a class="apple-inline-link" href="tel:+919212684600">+91 92126 84600</a>.
+                </p>
+            </section>
+        </article>
     </div>
 
 </div>

@@ -1,73 +1,124 @@
-<div class="info-page">
+<div class="info-page apple-doc-page">
 
-    <header class="info-hero">
-        <span class="info-eyebrow">Help Centre</span>
+    <!-- Official Apple Support Hero -->
+    <header class="info-hero apple-doc-hero">
+        <div class="apple-hero-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+        </div>
+        <span class="info-eyebrow">Stayora Support</span>
         <h1 class="info-title">How can we help you?</h1>
         <p class="info-subtitle">
-            Quick answers to common questions about browsing stays, booking rooms, hosting properties, and keeping your account safe.
+            Clear answers about booking curated stays, hosting properties, cancellation policies, and keeping your Stayora account secure.
         </p>
+
+        <div class="apple-support-pills">
+            <a href="#faq-booking" class="category-pill">Booking a Stay</a>
+            <a href="#hosting-guide" class="category-pill">Become a Host</a>
+            <a href="#faq-policies" class="category-pill">Cancellations</a>
+            <a href="#faq-security" class="category-pill">Password &amp; Security</a>
+        </div>
     </header>
 
-    <section class="info-grid-3">
-        <div class="feature-tile">
+    <!-- 3 Apple Support Topic Cards -->
+    <section class="info-grid-3" aria-label="Support categories">
+        <a href="#faq-booking" class="feature-tile apple-topic-card">
+            <span class="apple-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            </span>
             <h3>Bookings &amp; Stays</h3>
-            <p>How to search by city, compare room categories, check availability, and confirm your stay.</p>
-        </div>
-        <div class="feature-tile">
+            <p>Search by city, compare room categories, check real-time availability, and confirm your trip.</p>
+            <span class="apple-topic-link">View answers &rarr;</span>
+        </a>
+
+        <a href="#hosting-guide" class="feature-tile apple-topic-card">
+            <span class="apple-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10.5 12 3l9 7.5"></path>
+                    <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+                    <path d="M9.5 21v-6h5v6"></path>
+                </svg>
+            </span>
             <h3>Hosting on Stayora</h3>
-            <p>Upgrade to a Host account, list your property, manage rooms, and get verified.</p>
-        </div>
-        <div class="feature-tile">
+            <p>Upgrade to a Host account, list your property, manage room inventory, and earn Verified Host status.</p>
+            <span class="apple-topic-link">Hosting guide &rarr;</span>
+        </a>
+
+        <a href="#faq-security" class="feature-tile apple-topic-card">
+            <span class="apple-tile-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+            </span>
             <h3>Account &amp; Security</h3>
-            <p>OTP email verification, Google sign-in, password resets, and session safety.</p>
-        </div>
+            <p>OTP email verification, Google sign-in, password resets, and automatic session protection.</p>
+            <span class="apple-topic-link">Security help &rarr;</span>
+        </a>
     </section>
 
-    <section class="info-card-white">
-        <h2 class="info-section-title">Frequently Asked Questions</h2>
+    <!-- Apple Accordion FAQ Section -->
+    <section class="info-card-white apple-faq-card">
+        <div class="apple-faq-head">
+            <span class="apple-section-kicker">Knowledge Base</span>
+            <h2 class="info-section-title">Frequently Asked Questions</h2>
+        </div>
 
         <div class="faq-list">
-            <details class="faq-item">
+            <details id="faq-booking" class="faq-item">
                 <summary>How do I book a room on Stayora?</summary>
                 <p class="faq-answer">
-                    Browse properties on the Stays page, click "View More" on any property you like, scroll down to the "Choose your room" section, and click "Book This Room". Make sure you are logged into your Stayora account to complete your booking.
+                    Browse properties on the Stays page, click &ldquo;Explore&rdquo; on any stay you like, scroll down to the &ldquo;Choose your room&rdquo; section, and click &ldquo;Book This Room&rdquo;. Sign in to your Stayora account, choose your dates and room count, and confirm instantly.
                 </p>
             </details>
 
             <details id="hosting-guide" class="faq-item">
                 <summary>How do I become a Host and list my property?</summary>
                 <p class="faq-answer">
-                    Log in to your Stayora account and click "+ Become a Host" in the top navigation bar. Your account role will be upgraded to Host, giving you access to your Host Dashboard where you can add and manage your properties.
+                    Log in to your Stayora account and click &ldquo;+ Become a Host&rdquo; in the navigation bar. Your account upgrades immediately to a Host account, unlocking your Host Dashboard where you can add properties, upload photos, and manage rooms.
                 </p>
             </details>
 
             <details class="faq-item">
-                <summary>What does "Verified Host" mean?</summary>
+                <summary>What does &ldquo;Verified Host&rdquo; mean?</summary>
                 <p class="faq-answer">
-                    A Verified Host badge indicates that the host's account and property details have been reviewed and approved by the Stayora team for quality and authenticity.
+                    A Verified Host badge indicates that the host&rsquo;s account and property details have been reviewed and approved by the Stayora moderation team for accuracy, quality, and authenticity.
                 </p>
             </details>
 
-            <details class="faq-item">
+            <details id="faq-policies" class="faq-item">
                 <summary>Where can I check check-in, check-out, and cancellation policies?</summary>
                 <p class="faq-answer">
-                    Every property detail page clearly displays the exact check-in time, check-out time, and cancellation policy (Flexible, Moderate, or Strict) under the "Things to know" section before you book.
+                    Every property detail page clearly displays the exact check-in time, check-out time, and cancellation policy (Flexible, Moderate, or Strict) under &ldquo;Things to know&rdquo; before you book - and your policy is locked in on your booking confirmation.
                 </p>
             </details>
 
-            <details class="faq-item">
+            <details id="faq-security" class="faq-item">
                 <summary>I forgot my password. How can I reset it?</summary>
                 <p class="faq-answer">
-                    Go to the Login page and click "Forgot Password". Enter your registered email address and follow the secure reset link sent to your inbox.
+                    Go to the Log in page and click &ldquo;Forgot password?&rdquo;. Enter your registered email address and follow the secure 10-minute reset link sent to your inbox. Resetting your password automatically signs out all older sessions.
                 </p>
             </details>
         </div>
     </section>
 
-    <section class="info-cta-bar">
+    <!-- Apple Support Bottom CTA -->
+    <section class="info-cta-bar apple-support-cta">
+        <span class="apple-section-kicker">Get Support</span>
         <h2>Still need help?</h2>
-        <p>Our support team is just a phone call or email away.</p>
-        <a href="/contact" class="info-btn">Contact Us</a>
+        <p>Our Stayora support team is just a phone call or email away, seven days a week.</p>
+        <div class="apple-cta-actions">
+            <a href="/contact" class="info-btn">Contact Support</a>
+            <a href="/listings" class="apple-btn-soft">Browse Stays</a>
+        </div>
     </section>
 
 </div>
