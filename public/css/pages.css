@@ -25,7 +25,9 @@ body:has(.categories-page) {
 }
 
 .info-eyebrow {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: var(--apple-font-text);
     font-size: 11.5px;
     font-weight: 600;
@@ -36,6 +38,18 @@ body:has(.categories-page) {
     padding: 6px 14px;
     border-radius: 9999px;
     margin-bottom: 14px;
+}
+
+.info-eyebrow .brand-mark-svg {
+    width: 15px;
+    height: 13.5px;
+    color: currentColor;
+}
+
+.apple-hero-icon .brand-mark-svg {
+    width: 32px;
+    height: 29px;
+    color: #1d1d1f;
 }
 
 .info-title {

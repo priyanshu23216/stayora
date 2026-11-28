@@ -3,8 +3,8 @@
     <div class="home-container hero-inner">
         <div class="hero-content">
             <div class="hero-eyebrow">
-                <span class="hero-eyebrow-dot" aria-hidden="true"></span>
-                Stayora · Verified Stays
+                <%- include('./partials/brand-mark.ejs') %>
+                Stayora &middot; Verified Stays
             </div>
             <h1 class="hero-title">
                 Find your next stay, <span>effortlessly.</span>
@@ -24,7 +24,7 @@
         <div class="hero-showcase" aria-label="Luxury property editorial highlight">
             <div class="hero-showcase-media">
                 <img src="/images/hero-villa.jpg" alt="Modern cantilevered glass cliffside villa overlooking the ocean at twilight" class="media-cover">
-                <span class="hero-showcase-badge">Stayora Signature</span>
+                <span class="hero-showcase-badge"><%- include('./partials/brand-mark.ejs') %>Stayora Signature</span>
             </div>
             <div class="hero-showcase-body">
                 <div>
@@ -62,7 +62,7 @@
             </div>
 
             <div class="spotlight-copy">
-                <span class="eyebrow-light">The Stayora Standard</span>
+                <span class="eyebrow-light"><%- include('./partials/brand-mark.ejs') %>The Stayora Standard</span>
                 <h2 class="section-title">Every stay, thoughtfully chosen.</h2>
                 <p class="spotlight-text">
                     Great travel starts with a space that feels intentional. From sunlit coastal

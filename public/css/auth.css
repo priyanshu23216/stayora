@@ -351,12 +351,22 @@ body:has(.otp-screen) {
 }
 
 .otp-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--apple-font-display);
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     letter-spacing: -0.03em;
     color: #1d1d1f;
     text-decoration: none;
+}
+
+.otp-brand .brand-mark-svg {
+    width: 28px;
+    height: 25px;
+    flex-shrink: 0;
+    color: #1d1d1f;
 }
 
 .otp-brand span {

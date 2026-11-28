@@ -153,13 +153,28 @@ body:has(.hero) .site-header {
 
 /* Brand Logo */
 .nav-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: var(--apple-font-display);
     font-size: 20px;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     color: #f5f5f7;
     text-decoration: none;
     white-space: nowrap;
+}
+
+.brand-mark-svg {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.nav-logo .brand-mark-svg {
+    width: 28px;
+    height: 25px;
+    color: #ffffff;
 }
 
 .nav-logo span {

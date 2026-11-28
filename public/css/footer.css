@@ -133,8 +133,18 @@
 }
 
 .footer-copyright {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     margin: 0;
     color: #6e6e73;
+}
+
+.footer-copyright .brand-mark-svg {
+    width: 16px;
+    height: 14.5px;
+    color: #1d1d1f;
+    opacity: 0.78;
 }
 
 .footer-legal-links {

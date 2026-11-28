@@ -51,6 +51,12 @@ html {
     margin-bottom: 20px;
 }
 
+.hero-eyebrow .brand-mark-svg {
+    width: 17px;
+    height: 15px;
+    color: #ffffff;
+}
+
 .hero-eyebrow-dot {
     width: 7px;
     height: 7px;
@@ -200,6 +206,9 @@ html {
 .hero-showcase-badge {
     position: relative;
     z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background-color: rgba(15, 16, 20, 0.72);
     backdrop-filter: saturate(180%) blur(12px);
     -webkit-backdrop-filter: saturate(180%) blur(12px);
@@ -211,6 +220,12 @@ html {
     padding: 5px 12px;
     border-radius: 9999px;
     border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.hero-showcase-badge .brand-mark-svg {
+    width: 15px;
+    height: 13.5px;
+    color: #ffffff;
 }
 
 .hero-showcase-body {
@@ -344,13 +359,21 @@ html {
 }
 
 .eyebrow-light {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--apple-primary);
     margin-bottom: 10px;
+}
+
+.eyebrow-light .brand-mark-svg {
+    width: 16px;
+    height: 14.5px;
+    color: currentColor;
 }
 
 .spotlight-text {
